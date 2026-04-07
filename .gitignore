@@ -215,6 +215,7 @@ marimo/_lsp/
 __marimo__/
 
 # Web app
+node_modules/
 web/node_modules/
 web/.next/
 web/out/

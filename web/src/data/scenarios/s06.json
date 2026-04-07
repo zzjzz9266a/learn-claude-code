@@ -5,18 +5,18 @@
   "steps": [
     {
       "type": "user_message",
-      "content": "Analyze all Python files in this project and summarize each one",
+      "content": "Analyze all TypeScript files in this project and summarize each one",
       "annotation": "A task that will generate large amounts of context"
     },
     {
       "type": "tool_call",
-      "content": "find . -name '*.py' -type f",
+      "content": "find . -name '*.ts' -type f",
       "toolName": "bash",
       "annotation": "Finding all files to analyze"
     },
     {
       "type": "tool_result",
-      "content": "./src/main.py\n./src/utils.py\n./src/models.py\n./tests/test_main.py\n... (28 more files)",
+      "content": "./src/main.ts\n./src/utils.ts\n./src/models.ts\n./tests/test_main.ts\n... (28 more files)",
       "toolName": "bash",
       "annotation": "32 files found -- reading all of them will generate massive context"
     },
@@ -27,7 +27,7 @@
     },
     {
       "type": "tool_call",
-      "content": "./src/main.py",
+      "content": "./src/main.ts",
       "toolName": "read_file",
       "annotation": "Reading file 1 of 32..."
     },

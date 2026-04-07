@@ -39,7 +39,7 @@ Communication:
 
 1. TeammateManager maintains config.json with the team roster.
 
-```python
+```ts
 class TeammateManager:
     def __init__(self, team_dir: Path):
         self.dir = team_dir
@@ -51,7 +51,7 @@ class TeammateManager:
 
 2. `spawn()` creates a teammate and starts its agent loop in a thread.
 
-```python
+```ts
 def spawn(self, name: str, role: str, prompt: str) -> str:
     member = {"name": name, "role": role, "status": "working"}
     self.config["members"].append(member)
@@ -65,7 +65,7 @@ def spawn(self, name: str, role: str, prompt: str) -> str:
 
 3. MessageBus: append-only JSONL inboxes. `send()` appends a JSON line; `read_inbox()` reads all and drains.
 
-```python
+```ts
 class MessageBus:
     def send(self, sender, to, content, msg_type="message", extra=None):
         msg = {"type": msg_type, "from": sender,
@@ -85,7 +85,7 @@ class MessageBus:
 
 4. Each teammate checks its inbox before every LLM call, injecting received messages into context.
 
-```python
+```ts
 def _teammate_loop(self, name, role, prompt):
     messages = [{"role": "user", "content": prompt}]
     for _ in range(50):
@@ -115,7 +115,7 @@ def _teammate_loop(self, name, role, prompt):
 
 ```sh
 cd learn-claude-code
-python agents/s09_agent_teams.py
+npm run s09
 ```
 
 1. `Spawn alice (coder) and bob (tester). Have alice send bob a message.`

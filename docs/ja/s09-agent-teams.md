@@ -39,7 +39,7 @@ Communication:
 
 1. TeammateManagerがconfig.jsonでチーム名簿を管理する。
 
-```python
+```ts
 class TeammateManager:
     def __init__(self, team_dir: Path):
         self.dir = team_dir
@@ -51,7 +51,7 @@ class TeammateManager:
 
 2. `spawn()`がチームメイトを作成し、そのエージェントループをスレッドで開始する。
 
-```python
+```ts
 def spawn(self, name: str, role: str, prompt: str) -> str:
     member = {"name": name, "role": role, "status": "working"}
     self.config["members"].append(member)
@@ -65,7 +65,7 @@ def spawn(self, name: str, role: str, prompt: str) -> str:
 
 3. MessageBus: 追記専用のJSONLインボックス。`send()`がJSON行を追記し、`read_inbox()`がすべて読み取ってドレインする。
 
-```python
+```ts
 class MessageBus:
     def send(self, sender, to, content, msg_type="message", extra=None):
         msg = {"type": msg_type, "from": sender,
@@ -85,7 +85,7 @@ class MessageBus:
 
 4. 各チームメイトは各LLM呼び出しの前にインボックスを確認し、受信メッセージをコンテキストに注入する。
 
-```python
+```ts
 def _teammate_loop(self, name, role, prompt):
     messages = [{"role": "user", "content": prompt}]
     for _ in range(50):
@@ -115,7 +115,7 @@ def _teammate_loop(self, name, role, prompt):
 
 ```sh
 cd learn-claude-code
-python agents/s09_agent_teams.py
+npm run s09
 ```
 
 1. `Spawn alice (coder) and bob (tester). Have alice send bob a message.`

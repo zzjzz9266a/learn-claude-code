@@ -8,7 +8,7 @@
 
 ## 问题
 
-到 s11, Agent 已经能自主认领和完成任务。但所有任务共享一个目录。两个 Agent 同时重构不同模块 -- A 改 `config.py`, B 也改 `config.py`, 未提交的改动互相污染, 谁也没法干净回滚。
+到 s11, Agent 已经能自主认领和完成任务。但所有任务共享一个目录。两个 Agent 同时重构不同模块 -- A 改 `config.ts`, B 也改 `config.ts`, 未提交的改动互相污染, 谁也没法干净回滚。
 
 任务板管 "做什么" 但不管 "在哪做"。解法: 给每个任务一个独立的 git worktree 目录, 用任务 ID 把两边关联起来。
 
@@ -38,14 +38,14 @@ State machines:
 
 1. **创建任务。** 先把目标持久化。
 
-```python
+```ts
 TASKS.create("Implement auth refactor")
 # -> .tasks/task_1.json  status=pending  worktree=""
 ```
 
 2. **创建 worktree 并绑定任务。** 传入 `task_id` 自动将任务推进到 `in_progress`。
 
-```python
+```ts
 WORKTREES.create("auth-refactor", task_id=1)
 # -> git worktree add -b wt/auth-refactor .worktrees/auth-refactor HEAD
 # -> index.json gets new entry, task_1.json gets worktree="auth-refactor"
@@ -53,7 +53,7 @@ WORKTREES.create("auth-refactor", task_id=1)
 
 绑定同时写入两侧状态:
 
-```python
+```ts
 def bind_worktree(self, task_id, worktree):
     task = self._load(task_id)
     task["worktree"] = worktree
@@ -64,7 +64,7 @@ def bind_worktree(self, task_id, worktree):
 
 3. **在 worktree 中执行命令。** `cwd` 指向隔离目录。
 
-```python
+```ts
 subprocess.run(command, shell=True, cwd=worktree_path,
                capture_output=True, text=True, timeout=300)
 ```
@@ -73,7 +73,7 @@ subprocess.run(command, shell=True, cwd=worktree_path,
    - `worktree_keep(name)` -- 保留目录供后续使用。
    - `worktree_remove(name, complete_task=True)` -- 删除目录, 完成绑定任务, 发出事件。一个调用搞定拆除 + 完成。
 
-```python
+```ts
 def remove(self, name, force=False, complete_task=False):
     self._run_git(["worktree", "remove", wt["path"]])
     if complete_task and wt.get("task_id") is not None:
@@ -111,7 +111,7 @@ def remove(self, name, force=False, complete_task=False):
 
 ```sh
 cd learn-claude-code
-python agents/s12_worktree_task_isolation.py
+npm run s12
 ```
 
 试试这些 prompt (英文 prompt 对 LLM 效果更好, 也可以用中文):

@@ -8,7 +8,7 @@
 
 ## Problem
 
-By s11, agents can claim and complete tasks autonomously. But every task runs in one shared directory. Two agents refactoring different modules at the same time will collide: agent A edits `config.py`, agent B edits `config.py`, unstaged changes mix, and neither can roll back cleanly.
+By s11, agents can claim and complete tasks autonomously. But every task runs in one shared directory. Two agents refactoring different modules at the same time will collide: agent A edits `config.ts`, agent B edits `config.ts`, unstaged changes mix, and neither can roll back cleanly.
 
 The task board tracks *what to do* but has no opinion about *where to do it*. The fix: give each task its own git worktree directory. Tasks manage goals, worktrees manage execution context. Bind them by task ID.
 
@@ -38,14 +38,14 @@ State machines:
 
 1. **Create a task.** Persist the goal first.
 
-```python
+```ts
 TASKS.create("Implement auth refactor")
 # -> .tasks/task_1.json  status=pending  worktree=""
 ```
 
 2. **Create a worktree and bind to the task.** Passing `task_id` auto-advances the task to `in_progress`.
 
-```python
+```ts
 WORKTREES.create("auth-refactor", task_id=1)
 # -> git worktree add -b wt/auth-refactor .worktrees/auth-refactor HEAD
 # -> index.json gets new entry, task_1.json gets worktree="auth-refactor"
@@ -53,7 +53,7 @@ WORKTREES.create("auth-refactor", task_id=1)
 
 The binding writes state to both sides:
 
-```python
+```ts
 def bind_worktree(self, task_id, worktree):
     task = self._load(task_id)
     task["worktree"] = worktree
@@ -64,7 +64,7 @@ def bind_worktree(self, task_id, worktree):
 
 3. **Run commands in the worktree.** `cwd` points to the isolated directory.
 
-```python
+```ts
 subprocess.run(command, shell=True, cwd=worktree_path,
                capture_output=True, text=True, timeout=300)
 ```
@@ -73,7 +73,7 @@ subprocess.run(command, shell=True, cwd=worktree_path,
    - `worktree_keep(name)` -- preserve the directory for later.
    - `worktree_remove(name, complete_task=True)` -- remove directory, complete the bound task, emit event. One call handles teardown + completion.
 
-```python
+```ts
 def remove(self, name, force=False, complete_task=False):
     self._run_git(["worktree", "remove", wt["path"]])
     if complete_task and wt.get("task_id") is not None:
@@ -111,7 +111,7 @@ After a crash, state reconstructs from `.tasks/` + `.worktrees/index.json` on di
 
 ```sh
 cd learn-claude-code
-python agents/s12_worktree_task_isolation.py
+npm run s12
 ```
 
 1. `Create tasks for backend auth and frontend login page, then list tasks.`

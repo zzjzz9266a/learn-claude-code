@@ -8,7 +8,7 @@
 
 ## 問題
 
-s11までにエージェントはタスクを自律的に確保して完了できるようになった。しかし全タスクが1つの共有ディレクトリで走る。2つのエージェントが同時に異なるモジュールをリファクタリングすると衝突する: 片方が`config.py`を編集し、もう片方も`config.py`を編集し、未コミットの変更が混ざり合い、どちらもクリーンにロールバックできない。
+s11までにエージェントはタスクを自律的に確保して完了できるようになった。しかし全タスクが1つの共有ディレクトリで走る。2つのエージェントが同時に異なるモジュールをリファクタリングすると衝突する: 片方が`config.ts`を編集し、もう片方も`config.ts`を編集し、未コミットの変更が混ざり合い、どちらもクリーンにロールバックできない。
 
 タスクボードは*何をやるか*を追跡するが、*どこでやるか*には関知しない。解決策: 各タスクに専用のgit worktreeディレクトリを与える。タスクが目標を管理し、worktreeが実行コンテキストを管理する。タスクIDで紐付ける。
 
@@ -38,14 +38,14 @@ State machines:
 
 1. **タスクを作成する。** まず目標を永続化する。
 
-```python
+```ts
 TASKS.create("Implement auth refactor")
 # -> .tasks/task_1.json  status=pending  worktree=""
 ```
 
 2. **worktreeを作成してタスクに紐付ける。** `task_id`を渡すと、タスクが自動的に`in_progress`に遷移する。
 
-```python
+```ts
 WORKTREES.create("auth-refactor", task_id=1)
 # -> git worktree add -b wt/auth-refactor .worktrees/auth-refactor HEAD
 # -> index.json gets new entry, task_1.json gets worktree="auth-refactor"
@@ -53,7 +53,7 @@ WORKTREES.create("auth-refactor", task_id=1)
 
 紐付けは両側に状態を書き込む:
 
-```python
+```ts
 def bind_worktree(self, task_id, worktree):
     task = self._load(task_id)
     task["worktree"] = worktree
@@ -64,7 +64,7 @@ def bind_worktree(self, task_id, worktree):
 
 3. **worktree内でコマンドを実行する。** `cwd`が分離ディレクトリを指す。
 
-```python
+```ts
 subprocess.run(command, shell=True, cwd=worktree_path,
                capture_output=True, text=True, timeout=300)
 ```
@@ -73,7 +73,7 @@ subprocess.run(command, shell=True, cwd=worktree_path,
    - `worktree_keep(name)` -- ディレクトリを保持する。
    - `worktree_remove(name, complete_task=True)` -- ディレクトリを削除し、紐付けられたタスクを完了し、イベントを発行する。1回の呼び出しで後片付けと完了を処理する。
 
-```python
+```ts
 def remove(self, name, force=False, complete_task=False):
     self._run_git(["worktree", "remove", wt["path"]])
     if complete_task and wt.get("task_id") is not None:
@@ -111,7 +111,7 @@ def remove(self, name, force=False, complete_task=False):
 
 ```sh
 cd learn-claude-code
-python agents/s12_worktree_task_isolation.py
+npm run s12
 ```
 
 1. `Create tasks for backend auth and frontend login page, then list tasks.`

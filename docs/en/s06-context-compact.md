@@ -46,7 +46,7 @@ continue    [Layer 2: auto_compact]
 
 1. **Layer 1 -- micro_compact**: Before each LLM call, replace old tool results with placeholders.
 
-```python
+```ts
 def micro_compact(messages: list) -> list:
     tool_results = []
     for i, msg in enumerate(messages):
@@ -64,7 +64,7 @@ def micro_compact(messages: list) -> list:
 
 2. **Layer 2 -- auto_compact**: When tokens exceed threshold, save full transcript to disk, then ask the LLM to summarize.
 
-```python
+```ts
 def auto_compact(messages: list) -> list:
     # Save transcript for recovery
     transcript_path = TRANSCRIPT_DIR / f"transcript_{int(time.time())}.jsonl"
@@ -88,7 +88,7 @@ def auto_compact(messages: list) -> list:
 
 4. The loop integrates all three:
 
-```python
+```ts
 def agent_loop(messages: list):
     while True:
         micro_compact(messages)                        # Layer 1
@@ -116,9 +116,9 @@ Transcripts preserve full history on disk. Nothing is truly lost -- just moved o
 
 ```sh
 cd learn-claude-code
-python agents/s06_context_compact.py
+npm run s06
 ```
 
-1. `Read every Python file in the agents/ directory one by one` (watch micro-compact replace old results)
+1. `Read every TypeScript file in the agents/ directory one by one` (watch micro-compact replace old results)
 2. `Keep reading files until compression triggers automatically`
 3. `Use the compact tool to manually compress the conversation`

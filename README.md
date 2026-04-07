@@ -189,7 +189,7 @@ First we fill the workshops. Then the farms, the hospitals, the factories. Then 
 
 ## The Core Pattern
 
-```python
+```ts
 def agent_loop(messages):
     while True:
         response = client.messages.create(
@@ -234,12 +234,12 @@ Treat the team JSONL mailbox protocol in this repo as a teaching implementation,
 ```sh
 git clone https://github.com/shareAI-lab/learn-claude-code
 cd learn-claude-code
-pip install -r requirements.txt
+npm install
 cp .env.example .env   # Edit .env with your ANTHROPIC_API_KEY
 
-python agents/s01_agent_loop.py       # Start here
-python agents/s12_worktree_task_isolation.py  # Full progression endpoint
-python agents/s_full.py               # Capstone: all mechanisms combined
+npm run s01       # Start here
+npm run s12       # Full progression endpoint
+npm run s_full    # Capstone: all mechanisms combined
 ```
 
 ### Web Platform
@@ -289,7 +289,8 @@ s08  Background Tasks        [6]     s10  Team Protocols          [12]
 ```
 learn-claude-code/
 |
-|-- agents/                        # Python reference implementations (s01-s12 + s_full capstone)
+|-- agents/                        # TypeScript session entrypoints (s01-s12 + s_full capstone)
+|-- src/core/                      # Shared TypeScript runtime helpers
 |-- docs/{en,zh,ja}/               # Mental-model-first documentation (3 languages)
 |-- web/                           # Interactive learning platform (Next.js)
 |-- skills/                        # Skill files for s05

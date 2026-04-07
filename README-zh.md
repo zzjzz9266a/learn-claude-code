@@ -190,7 +190,7 @@ Claude Code = 一个 agent loop
 
 ## 核心模式
 
-```python
+```ts
 def agent_loop(messages):
     while True:
         response = client.messages.create(
@@ -235,12 +235,12 @@ def agent_loop(messages):
 ```sh
 git clone https://github.com/shareAI-lab/learn-claude-code
 cd learn-claude-code
-pip install -r requirements.txt
+npm install
 cp .env.example .env   # 编辑 .env 填入你的 ANTHROPIC_API_KEY
 
-python agents/s01_agent_loop.py       # 从这里开始
-python agents/s12_worktree_task_isolation.py  # 完整递进终点
-python agents/s_full.py               # 总纲: 全部机制合一
+npm run s01       # 从这里开始
+npm run s12       # 完整递进终点
+npm run s_full    # 总纲: 全部机制合一
 ```
 
 ### Web 平台
@@ -290,7 +290,8 @@ s08  Background Tasks        [6]     s10  Team Protocols          [12]
 ```
 learn-claude-code/
 |
-|-- agents/                        # Python 参考实现 (s01-s12 + s_full 总纲)
+|-- agents/                        # TypeScript 章节入口 (s01-s12 + s_full 总纲)
+|-- src/core/                      # 共享 TypeScript runtime 辅助模块
 |-- docs/{en,zh,ja}/               # 心智模型优先的文档 (3 种语言)
 |-- web/                           # 交互式学习平台 (Next.js)
 |-- skills/                        # s05 的 Skill 文件

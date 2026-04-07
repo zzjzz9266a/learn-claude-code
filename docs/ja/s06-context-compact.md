@@ -46,7 +46,7 @@ continue    [Layer 2: auto_compact]
 
 1. **第1層 -- micro_compact**: 各LLM呼び出しの前に、古いツール結果をプレースホルダーに置換する。
 
-```python
+```ts
 def micro_compact(messages: list) -> list:
     tool_results = []
     for i, msg in enumerate(messages):
@@ -64,7 +64,7 @@ def micro_compact(messages: list) -> list:
 
 2. **第2層 -- auto_compact**: トークンが閾値を超えたら、完全なトランスクリプトをディスクに保存し、LLMに要約を依頼する。
 
-```python
+```ts
 def auto_compact(messages: list) -> list:
     # Save transcript for recovery
     transcript_path = TRANSCRIPT_DIR / f"transcript_{int(time.time())}.jsonl"
@@ -88,7 +88,7 @@ def auto_compact(messages: list) -> list:
 
 4. ループが3層すべてを統合する:
 
-```python
+```ts
 def agent_loop(messages: list):
     while True:
         micro_compact(messages)                        # Layer 1
@@ -116,9 +116,9 @@ def agent_loop(messages: list):
 
 ```sh
 cd learn-claude-code
-python agents/s06_context_compact.py
+npm run s06
 ```
 
-1. `Read every Python file in the agents/ directory one by one` (micro-compactが古い結果を置換するのを観察する)
+1. `Read every TypeScript file in the agents/ directory one by one` (micro-compactが古い結果を置換するのを観察する)
 2. `Keep reading files until compression triggers automatically`
 3. `Use the compact tool to manually compress the conversation`

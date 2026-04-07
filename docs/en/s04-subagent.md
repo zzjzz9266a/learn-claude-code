@@ -8,7 +8,7 @@
 
 ## Problem
 
-As the agent works, its messages array grows. Every file read, every bash output stays in context permanently. "What testing framework does this project use?" might require reading 5 files, but the parent only needs the answer: "pytest."
+As the agent works, its messages array grows. Every file read, every bash output stays in context permanently. "What testing framework does this project use?" might require reading 5 files, but the parent only needs the answer: "npm test."
 
 ## Solution
 
@@ -30,7 +30,7 @@ Parent context stays clean. Subagent context is discarded.
 
 1. The parent gets a `task` tool. The child gets all base tools except `task` (no recursive spawning).
 
-```python
+```ts
 PARENT_TOOLS = CHILD_TOOLS + [
     {"name": "task",
      "description": "Spawn a subagent with fresh context.",
@@ -44,7 +44,7 @@ PARENT_TOOLS = CHILD_TOOLS + [
 
 2. The subagent starts with `messages=[]` and runs its own loop. Only the final text returns to the parent.
 
-```python
+```ts
 def run_subagent(prompt: str) -> str:
     sub_messages = [{"role": "user", "content": prompt}]
     for _ in range(30):  # safety limit
@@ -86,9 +86,9 @@ The child's entire message history (possibly 30+ tool calls) is discarded. The p
 
 ```sh
 cd learn-claude-code
-python agents/s04_subagent.py
+npm run s04
 ```
 
 1. `Use a subtask to find what testing framework this project uses`
-2. `Delegate: read all .py files and summarize what each one does`
+2. `Delegate: read all .ts files and summarize what each one does`
 3. `Use a task to create a new module, then verify it from here`

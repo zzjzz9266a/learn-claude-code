@@ -29,13 +29,13 @@
 
 1. ユーザーのプロンプトが最初のメッセージになる。
 
-```python
+```ts
 messages.append({"role": "user", "content": query})
 ```
 
 2. メッセージとツール定義をLLMに送信する。
 
-```python
+```ts
 response = client.messages.create(
     model=MODEL, system=SYSTEM, messages=messages,
     tools=TOOLS, max_tokens=8000,
@@ -44,7 +44,7 @@ response = client.messages.create(
 
 3. アシスタントのレスポンスを追加し、`stop_reason`を確認する。ツールが呼ばれなければ終了。
 
-```python
+```ts
 messages.append({"role": "assistant", "content": response.content})
 if response.stop_reason != "tool_use":
     return
@@ -52,7 +52,7 @@ if response.stop_reason != "tool_use":
 
 4. 各ツール呼び出しを実行し、結果を収集してuserメッセージとして追加。ステップ2に戻る。
 
-```python
+```ts
 results = []
 for block in response.content:
     if block.type == "tool_use":
@@ -67,7 +67,7 @@ messages.append({"role": "user", "content": results})
 
 1つの関数にまとめると:
 
-```python
+```ts
 def agent_loop(query):
     messages = [{"role": "user", "content": query}]
     while True:
@@ -107,10 +107,10 @@ def agent_loop(query):
 
 ```sh
 cd learn-claude-code
-python agents/s01_agent_loop.py
+npm run s01
 ```
 
-1. `Create a file called hello.py that prints "Hello, World!"`
-2. `List all Python files in this directory`
+1. `Create a file called hello.ts that prints "Hello, World!"`
+2. `List all TypeScript files in this directory`
 3. `What is the current git branch?`
 4. `Create a directory called test_output and write 3 files in it`

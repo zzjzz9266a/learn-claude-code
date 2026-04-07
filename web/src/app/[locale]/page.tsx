@@ -75,7 +75,7 @@ export default function HomePage() {
             <span className="h-3 w-3 rounded-full bg-red-500/70" />
             <span className="h-3 w-3 rounded-full bg-yellow-500/70" />
             <span className="h-3 w-3 rounded-full bg-green-500/70" />
-            <span className="ml-3 text-xs text-zinc-500">agent_loop.py</span>
+            <span className="ml-3 text-xs text-zinc-500">agent_loop.ts</span>
           </div>
           <pre className="overflow-x-auto p-4 text-sm leading-relaxed">
             <code>

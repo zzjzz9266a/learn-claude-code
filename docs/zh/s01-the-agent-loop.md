@@ -29,13 +29,13 @@
 
 1. 用户 prompt 作为第一条消息。
 
-```python
+```ts
 messages.append({"role": "user", "content": query})
 ```
 
 2. 将消息和工具定义一起发给 LLM。
 
-```python
+```ts
 response = client.messages.create(
     model=MODEL, system=SYSTEM, messages=messages,
     tools=TOOLS, max_tokens=8000,
@@ -44,7 +44,7 @@ response = client.messages.create(
 
 3. 追加助手响应。检查 `stop_reason` -- 如果模型没有调用工具, 结束。
 
-```python
+```ts
 messages.append({"role": "assistant", "content": response.content})
 if response.stop_reason != "tool_use":
     return
@@ -52,7 +52,7 @@ if response.stop_reason != "tool_use":
 
 4. 执行每个工具调用, 收集结果, 作为 user 消息追加。回到第 2 步。
 
-```python
+```ts
 results = []
 for block in response.content:
     if block.type == "tool_use":
@@ -67,7 +67,7 @@ messages.append({"role": "user", "content": results})
 
 组装为一个完整函数:
 
-```python
+```ts
 def agent_loop(query):
     messages = [{"role": "user", "content": query}]
     while True:
@@ -107,12 +107,12 @@ def agent_loop(query):
 
 ```sh
 cd learn-claude-code
-python agents/s01_agent_loop.py
+npm run s01
 ```
 
 试试这些 prompt (英文 prompt 对 LLM 效果更好, 也可以用中文):
 
-1. `Create a file called hello.py that prints "Hello, World!"`
-2. `List all Python files in this directory`
+1. `Create a file called hello.ts that prints "Hello, World!"`
+2. `List all TypeScript files in this directory`
 3. `What is the current git branch?`
 4. `Create a directory called test_output and write 3 files in it`

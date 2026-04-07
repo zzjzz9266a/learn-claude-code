@@ -47,7 +47,7 @@ skills/
 
 2. SkillLoader 递归扫描 `SKILL.md` 文件, 用目录名作为 Skill 标识。
 
-```python
+```ts
 class SkillLoader:
     def __init__(self, skills_dir: Path):
         self.skills = {}
@@ -73,7 +73,7 @@ class SkillLoader:
 
 3. 第一层写入系统提示。第二层不过是 dispatch map 中的又一个工具。
 
-```python
+```ts
 SYSTEM = f"""You are a coding agent at {WORKDIR}.
 Skills available:
 {SKILL_LOADER.get_descriptions()}"""
@@ -99,7 +99,7 @@ TOOL_HANDLERS = {
 
 ```sh
 cd learn-claude-code
-python agents/s05_skill_loading.py
+npm run s05
 ```
 
 试试这些 prompt (英文 prompt 对 LLM 效果更好, 也可以用中文):

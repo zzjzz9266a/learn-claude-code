@@ -8,7 +8,7 @@
 
 ## 問題
 
-一部のコマンドは数分かかる: `npm install`、`pytest`、`docker build`。ブロッキングループでは、モデルはサブプロセスの完了を待って座っている。ユーザーが「依存関係をインストールして、その間にconfigファイルを作って」と言っても、エージェントは並列ではなく逐次的に処理する。
+一部のコマンドは数分かかる: `npm install`、`npm test`、`docker build`。ブロッキングループでは、モデルはサブプロセスの完了を待って座っている。ユーザーが「依存関係をインストールして、その間にconfigファイルを作って」と言っても、エージェントは並列ではなく逐次的に処理する。
 
 ## 解決策
 
@@ -34,7 +34,7 @@ Agent --[spawn A]--[spawn B]--[other work]----
 
 1. BackgroundManagerがスレッドセーフな通知キューでタスクを追跡する。
 
-```python
+```ts
 class BackgroundManager:
     def __init__(self):
         self.tasks = {}
@@ -44,7 +44,7 @@ class BackgroundManager:
 
 2. `run()`がデーモンスレッドを開始し、即座にリターンする。
 
-```python
+```ts
 def run(self, command: str) -> str:
     task_id = str(uuid.uuid4())[:8]
     self.tasks[task_id] = {"status": "running", "command": command}
@@ -56,7 +56,7 @@ def run(self, command: str) -> str:
 
 3. サブプロセス完了時に、結果を通知キューへ。
 
-```python
+```ts
 def _execute(self, task_id, command):
     try:
         r = subprocess.run(command, shell=True, cwd=WORKDIR,
@@ -71,7 +71,7 @@ def _execute(self, task_id, command):
 
 4. エージェントループが各LLM呼び出しの前に通知をドレインする。
 
-```python
+```ts
 def agent_loop(messages: list):
     while True:
         notifs = BG.drain_notifications()
@@ -99,9 +99,9 @@ def agent_loop(messages: list):
 
 ```sh
 cd learn-claude-code
-python agents/s08_background_tasks.py
+npm run s08
 ```
 
 1. `Run "sleep 5 && echo done" in the background, then create a file while it runs`
 2. `Start 3 background tasks: "sleep 2", "sleep 4", "sleep 6". Check their status.`
-3. `Run pytest in the background and keep working on other things`
+3. `Run npm test in the background and keep working on other things`

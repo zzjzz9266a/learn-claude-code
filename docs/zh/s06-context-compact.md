@@ -46,7 +46,7 @@ continue    [Layer 2: auto_compact]
 
 1. **第一层 -- micro_compact**: 每次 LLM 调用前, 将旧的 tool result 替换为占位符。
 
-```python
+```ts
 def micro_compact(messages: list) -> list:
     tool_results = []
     for i, msg in enumerate(messages):
@@ -64,7 +64,7 @@ def micro_compact(messages: list) -> list:
 
 2. **第二层 -- auto_compact**: token 超过阈值时, 保存完整对话到磁盘, 让 LLM 做摘要。
 
-```python
+```ts
 def auto_compact(messages: list) -> list:
     # Save transcript for recovery
     transcript_path = TRANSCRIPT_DIR / f"transcript_{int(time.time())}.jsonl"
@@ -88,7 +88,7 @@ def auto_compact(messages: list) -> list:
 
 4. 循环整合三层:
 
-```python
+```ts
 def agent_loop(messages: list):
     while True:
         micro_compact(messages)                        # Layer 1
@@ -116,11 +116,11 @@ def agent_loop(messages: list):
 
 ```sh
 cd learn-claude-code
-python agents/s06_context_compact.py
+npm run s06
 ```
 
 试试这些 prompt (英文 prompt 对 LLM 效果更好, 也可以用中文):
 
-1. `Read every Python file in the agents/ directory one by one` (观察 micro-compact 替换旧结果)
+1. `Read every TypeScript file in the agents/ directory one by one` (观察 micro-compact 替换旧结果)
 2. `Keep reading files until compression triggers automatically`
 3. `Use the compact tool to manually compress the conversation`

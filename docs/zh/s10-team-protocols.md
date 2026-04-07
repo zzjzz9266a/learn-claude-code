@@ -44,7 +44,7 @@ Trackers:
 
 1. 领导生成 request_id, 通过收件箱发起关机请求。
 
-```python
+```ts
 shutdown_requests = {}
 
 def handle_shutdown_request(teammate: str) -> str:
@@ -57,7 +57,7 @@ def handle_shutdown_request(teammate: str) -> str:
 
 2. 队友收到请求后, 用 approve/reject 响应。
 
-```python
+```ts
 if tool_name == "shutdown_response":
     req_id = args["request_id"]
     approve = args["approve"]
@@ -69,7 +69,7 @@ if tool_name == "shutdown_response":
 
 3. 计划审批遵循完全相同的模式。队友提交计划 (生成 request_id), 领导审查 (引用同一个 request_id)。
 
-```python
+```ts
 plan_requests = {}
 
 def handle_plan_review(request_id, approve, feedback=""):
@@ -96,7 +96,7 @@ def handle_plan_review(request_id, approve, feedback=""):
 
 ```sh
 cd learn-claude-code
-python agents/s10_team_protocols.py
+npm run s10
 ```
 
 试试这些 prompt (英文 prompt 对 LLM 效果更好, 也可以用中文):

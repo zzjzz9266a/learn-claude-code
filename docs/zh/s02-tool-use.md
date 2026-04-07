@@ -33,7 +33,7 @@ One lookup replaces any if/elif chain.
 
 1. 每个工具有一个处理函数。路径沙箱防止逃逸工作区。
 
-```python
+```ts
 def safe_path(p: str) -> Path:
     path = (WORKDIR / p).resolve()
     if not path.is_relative_to(WORKDIR):
@@ -50,7 +50,7 @@ def run_read(path: str, limit: int = None) -> str:
 
 2. dispatch map 将工具名映射到处理函数。
 
-```python
+```ts
 TOOL_HANDLERS = {
     "bash":       lambda **kw: run_bash(kw["command"]),
     "read_file":  lambda **kw: run_read(kw["path"], kw.get("limit")),
@@ -62,7 +62,7 @@ TOOL_HANDLERS = {
 
 3. 循环中按名称查找处理函数。循环体本身与 s01 完全一致。
 
-```python
+```ts
 for block in response.content:
     if block.type == "tool_use":
         handler = TOOL_HANDLERS.get(block.name)
@@ -90,12 +90,12 @@ for block in response.content:
 
 ```sh
 cd learn-claude-code
-python agents/s02_tool_use.py
+npm run s02
 ```
 
 试试这些 prompt (英文 prompt 对 LLM 效果更好, 也可以用中文):
 
-1. `Read the file requirements.txt`
-2. `Create a file called greet.py with a greet(name) function`
-3. `Edit greet.py to add a docstring to the function`
-4. `Read greet.py to verify the edit worked`
+1. `Read the file package.json`
+2. `Create a file called greet.ts with a greet(name) function`
+3. `Edit greet.ts to add a docstring to the function`
+4. `Read greet.ts to verify the edit worked`

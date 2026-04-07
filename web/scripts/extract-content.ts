@@ -15,12 +15,12 @@ const AGENTS_DIR = path.join(REPO_ROOT, "agents");
 const DOCS_DIR = path.join(REPO_ROOT, "docs");
 const OUT_DIR = path.join(WEB_DIR, "src", "data", "generated");
 
-// Map python filenames to version IDs
-// s01_agent_loop.py -> s01
-// s02_tools.py -> s02
-// s_full.py -> s_full (reference agent, typically skipped)
+// Map TypeScript filenames to version IDs
+// s01_agent_loop.ts -> s01
+// s02_tool_use.ts -> s02
+// s_full.ts -> s_full (reference agent, typically skipped)
 function filenameToVersionId(filename: string): string | null {
-  const base = path.basename(filename, ".py");
+  const base = path.basename(filename, ".ts");
   if (base === "s_full") return null;
   if (base === "__init__") return null;
 
@@ -29,24 +29,24 @@ function filenameToVersionId(filename: string): string | null {
   return match[1];
 }
 
-// Extract classes from Python source
+// Extract classes from TypeScript source
 function extractClasses(
   lines: string[]
 ): { name: string; startLine: number; endLine: number }[] {
   const classes: { name: string; startLine: number; endLine: number }[] = [];
-  const classPattern = /^class\s+(\w+)/;
+  const classPattern = /^export\s+class\s+(\w+)|^class\s+(\w+)/;
 
   for (let i = 0; i < lines.length; i++) {
     const m = lines[i].match(classPattern);
     if (m) {
-      const name = m[1];
+      const name = m[1] ?? m[2];
       const startLine = i + 1;
       // Find end of class: next class/function at indent 0, or EOF
       let endLine = lines.length;
       for (let j = i + 1; j < lines.length; j++) {
         if (
-          lines[j].match(/^class\s/) ||
-          lines[j].match(/^def\s/) ||
+          lines[j].match(/^export\s+class\s|^class\s/) ||
+          lines[j].match(/^export\s+async\s+function\s|^export\s+function\s|^async\s+function\s|^function\s/) ||
           (lines[j].match(/^\S/) && lines[j].trim() !== "" && !lines[j].startsWith("#") && !lines[j].startsWith("@"))
         ) {
           endLine = j;
@@ -59,19 +59,19 @@ function extractClasses(
   return classes;
 }
 
-// Extract top-level functions from Python source
+// Extract top-level functions from TypeScript source
 function extractFunctions(
   lines: string[]
 ): { name: string; signature: string; startLine: number }[] {
   const functions: { name: string; signature: string; startLine: number }[] = [];
-  const funcPattern = /^def\s+(\w+)\((.*?)\)/;
+  const funcPattern = /^(?:export\s+)?(?:async\s+)?function\s+(\w+)\((.*?)\)/;
 
   for (let i = 0; i < lines.length; i++) {
     const m = lines[i].match(funcPattern);
     if (m) {
       functions.push({
         name: m[1],
-        signature: `def ${m[1]}(${m[2]})`,
+        signature: `function ${m[1]}(${m[2]})`,
         startLine: i + 1,
       });
     }
@@ -79,10 +79,9 @@ function extractFunctions(
   return functions;
 }
 
-// Extract tool names from Python source
-// Looks for "name": "tool_name" patterns in dict literals
+// Extract tool names from TypeScript source
 function extractTools(source: string): string[] {
-  const toolPattern = /"name"\s*:\s*"(\w+)"/g;
+  const toolPattern = /(?:["']name["']|name)\s*:\s*"(\w+)"/g;
   const tools = new Set<string>();
   let m;
   while ((m = toolPattern.exec(source)) !== null) {
@@ -133,7 +132,7 @@ function main() {
   // 1. Read all agent files
   const agentFiles = fs
     .readdirSync(AGENTS_DIR)
-    .filter((f) => f.startsWith("s") && f.endsWith(".py"));
+    .filter((f) => f.startsWith("s") && f.endsWith(".ts"));
 
   console.log(`  Found ${agentFiles.length} agent files`);
 

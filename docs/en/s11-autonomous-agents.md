@@ -49,7 +49,7 @@ Identity re-injection after compression:
 
 1. The teammate loop has two phases: WORK and IDLE. When the LLM stops calling tools (or calls `idle`), the teammate enters IDLE.
 
-```python
+```ts
 def _loop(self, name, role, prompt):
     while True:
         # -- WORK PHASE --
@@ -73,7 +73,7 @@ def _loop(self, name, role, prompt):
 
 2. The idle phase polls inbox and task board in a loop.
 
-```python
+```ts
 def _idle_poll(self, name, messages):
     for _ in range(IDLE_TIMEOUT // POLL_INTERVAL):  # 60s / 5s = 12
         time.sleep(POLL_INTERVAL)
@@ -94,7 +94,7 @@ def _idle_poll(self, name, messages):
 
 3. Task board scanning: find pending, unowned, unblocked tasks.
 
-```python
+```ts
 def scan_unclaimed_tasks() -> list:
     unclaimed = []
     for f in sorted(TASKS_DIR.glob("task_*.json")):
@@ -108,7 +108,7 @@ def scan_unclaimed_tasks() -> list:
 
 4. Identity re-injection: when context is too short (compression happened), insert an identity block.
 
-```python
+```ts
 if len(messages) <= 3:
     messages.insert(0, {"role": "user",
         "content": f"<identity>You are '{name}', role: {role}, "
@@ -132,7 +132,7 @@ if len(messages) <= 3:
 
 ```sh
 cd learn-claude-code
-python agents/s11_autonomous_agents.py
+npm run s11
 ```
 
 1. `Create 3 tasks on the board, then spawn alice and bob. Watch them auto-claim.`

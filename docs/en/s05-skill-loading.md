@@ -47,7 +47,7 @@ skills/
 
 2. SkillLoader scans for `SKILL.md` files, uses the directory name as the skill identifier.
 
-```python
+```ts
 class SkillLoader:
     def __init__(self, skills_dir: Path):
         self.skills = {}
@@ -73,7 +73,7 @@ class SkillLoader:
 
 3. Layer 1 goes into the system prompt. Layer 2 is just another tool handler.
 
-```python
+```ts
 SYSTEM = f"""You are a coding agent at {WORKDIR}.
 Skills available:
 {SKILL_LOADER.get_descriptions()}"""
@@ -99,7 +99,7 @@ The model learns what skills exist (cheap) and loads them when relevant (expensi
 
 ```sh
 cd learn-claude-code
-python agents/s05_skill_loading.py
+npm run s05
 ```
 
 1. `What skills are available?`

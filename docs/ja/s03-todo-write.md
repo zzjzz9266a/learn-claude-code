@@ -36,7 +36,7 @@
 
 1. TodoManagerはアイテムのリストをステータス付きで保持する。`in_progress`にできるのは同時に1つだけ。
 
-```python
+```ts
 class TodoManager:
     def update(self, items: list) -> str:
         validated, in_progress_count = [], 0
@@ -54,7 +54,7 @@ class TodoManager:
 
 2. `todo`ツールは他のツールと同様にディスパッチマップに追加される。
 
-```python
+```ts
 TOOL_HANDLERS = {
     # ...base tools...
     "todo": lambda **kw: TODO.update(kw["items"]),
@@ -63,7 +63,7 @@ TOOL_HANDLERS = {
 
 3. nagリマインダーが、モデルが3ラウンド以上`todo`を呼ばなかった場合にナッジを注入する。
 
-```python
+```ts
 if rounds_since_todo >= 3 and messages:
     last = messages[-1]
     if last["role"] == "user" and isinstance(last.get("content"), list):
@@ -88,9 +88,9 @@ if rounds_since_todo >= 3 and messages:
 
 ```sh
 cd learn-claude-code
-python agents/s03_todo_write.py
+npm run s03
 ```
 
-1. `Refactor the file hello.py: add type hints, docstrings, and a main guard`
-2. `Create a Python package with __init__.py, utils.py, and tests/test_utils.py`
-3. `Review all Python files and fix any style issues`
+1. `Refactor the file hello.ts: add type hints, docstrings, and a main guard`
+2. `Create a TypeScript module set with index.ts, utils.ts, and tests/test_utils.ts`
+3. `Review all TypeScript files and fix any style issues`

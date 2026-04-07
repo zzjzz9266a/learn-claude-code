@@ -5,7 +5,7 @@
   "steps": [
     {
       "type": "user_message",
-      "content": "Create a file called hello.py that prints 'Hello, World!'",
+      "content": "Create a file called hello.ts that prints 'Hello, World!'",
       "annotation": "User sends a task to the agent"
     },
     {
@@ -15,7 +15,7 @@
     },
     {
       "type": "tool_call",
-      "content": "echo 'print(\"Hello, World!\")' > hello.py",
+      "content": "echo 'print(\"Hello, World!\")' > hello.ts",
       "toolName": "bash",
       "annotation": "Tool call: the model generates a bash command"
     },
@@ -32,7 +32,7 @@
     },
     {
       "type": "tool_call",
-      "content": "cat hello.py",
+      "content": "cat hello.ts",
       "toolName": "bash",
       "annotation": "Another bash call to verify"
     },
@@ -44,7 +44,7 @@
     },
     {
       "type": "assistant_text",
-      "content": "Done! I've created hello.py with the print statement. You can run it with `python hello.py`.",
+      "content": "Done! I've created hello.ts with the print statement. You can run it with `node hello.ts`.",
       "annotation": "stop_reason != 'tool_use' -> loop breaks, agent responds to user"
     }
   ]

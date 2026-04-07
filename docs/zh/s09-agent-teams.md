@@ -39,7 +39,7 @@ Communication:
 
 1. TeammateManager 通过 config.json 维护团队名册。
 
-```python
+```ts
 class TeammateManager:
     def __init__(self, team_dir: Path):
         self.dir = team_dir
@@ -51,7 +51,7 @@ class TeammateManager:
 
 2. `spawn()` 创建队友并在线程中启动 agent loop。
 
-```python
+```ts
 def spawn(self, name: str, role: str, prompt: str) -> str:
     member = {"name": name, "role": role, "status": "working"}
     self.config["members"].append(member)
@@ -65,7 +65,7 @@ def spawn(self, name: str, role: str, prompt: str) -> str:
 
 3. MessageBus: append-only 的 JSONL 收件箱。`send()` 追加一行; `read_inbox()` 读取全部并清空。
 
-```python
+```ts
 class MessageBus:
     def send(self, sender, to, content, msg_type="message", extra=None):
         msg = {"type": msg_type, "from": sender,
@@ -85,7 +85,7 @@ class MessageBus:
 
 4. 每个队友在每次 LLM 调用前检查收件箱, 将消息注入上下文。
 
-```python
+```ts
 def _teammate_loop(self, name, role, prompt):
     messages = [{"role": "user", "content": prompt}]
     for _ in range(50):
@@ -115,7 +115,7 @@ def _teammate_loop(self, name, role, prompt):
 
 ```sh
 cd learn-claude-code
-python agents/s09_agent_teams.py
+npm run s09
 ```
 
 试试这些 prompt (英文 prompt 对 LLM 效果更好, 也可以用中文):

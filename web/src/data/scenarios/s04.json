@@ -15,7 +15,7 @@
     },
     {
       "type": "tool_call",
-      "content": "Write unit tests for calc.py covering all 4 operations and edge cases like division by zero",
+      "content": "Write unit tests for calc.ts covering all 4 operations and edge cases like division by zero",
       "toolName": "task",
       "annotation": "Task tool spawns a subagent with its own isolated context"
     },
@@ -26,13 +26,13 @@
     },
     {
       "type": "tool_result",
-      "content": "Created test_calc.py with 8 test cases. All passing.",
+      "content": "Created test_calc.ts with 8 test cases. All passing.",
       "toolName": "task",
       "annotation": "Subagent completes and returns a summary to parent"
     },
     {
       "type": "tool_call",
-      "content": "calc.py -> calc/operations.py, calc/cli.py",
+      "content": "calc.ts -> calc/operations.ts, calc/cli.ts",
       "toolName": "write_file",
       "annotation": "Parent continues with its own task: refactoring"
     },
@@ -44,7 +44,7 @@
     },
     {
       "type": "assistant_text",
-      "content": "Refactored into calc/operations.py and calc/cli.py. Tests were written by a subagent and are all passing.",
+      "content": "Refactored into calc/operations.ts and calc/cli.ts. Tests were written by a subagent and are all passing.",
       "annotation": "Context isolation prevents confusion between tasks"
     }
   ]

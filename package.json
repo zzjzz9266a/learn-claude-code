@@ -1,0 +1,32 @@
+{
+  "name": "learn-claude-code",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "s01": "tsx agents/s01_agent_loop.ts",
+    "s02": "tsx agents/s02_tool_use.ts",
+    "s03": "tsx agents/s03_todo_write.ts",
+    "s04": "tsx agents/s04_subagent.ts",
+    "s05": "tsx agents/s05_skill_loading.ts",
+    "s06": "tsx agents/s06_context_compact.ts",
+    "s07": "tsx agents/s07_task_system.ts",
+    "s08": "tsx agents/s08_background_tasks.ts",
+    "s09": "tsx agents/s09_agent_teams.ts",
+    "s10": "tsx agents/s10_team_protocols.ts",
+    "s11": "tsx agents/s11_autonomous_agents.ts",
+    "s12": "tsx agents/s12_worktree_task_isolation.ts",
+    "s_full": "tsx agents/s_full.ts",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.40.1",
+    "dotenv": "^17.2.3"
+  },
+  "devDependencies": {
+    "@types/node": "^24.6.0",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.4"
+  }
+}

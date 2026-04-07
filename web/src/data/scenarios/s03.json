@@ -10,7 +10,7 @@
     },
     {
       "type": "tool_call",
-      "content": "[\n  { \"id\": 1, \"task\": \"Create calc.py with argument parsing\", \"status\": \"in_progress\" },\n  { \"id\": 2, \"task\": \"Implement 4 operations\", \"status\": \"pending\" },\n  { \"id\": 3, \"task\": \"Add error handling\", \"status\": \"pending\" },\n  { \"id\": 4, \"task\": \"Test all operations\", \"status\": \"pending\" }\n]",
+      "content": "[\n  { \"id\": 1, \"task\": \"Create calc.ts with argument parsing\", \"status\": \"in_progress\" },\n  { \"id\": 2, \"task\": \"Implement 4 operations\", \"status\": \"pending\" },\n  { \"id\": 3, \"task\": \"Add error handling\", \"status\": \"pending\" },\n  { \"id\": 4, \"task\": \"Test all operations\", \"status\": \"pending\" }\n]",
       "toolName": "todo_write",
       "annotation": "TodoManager creates a visible plan BEFORE any code is written"
     },
@@ -22,7 +22,7 @@
     },
     {
       "type": "tool_call",
-      "content": "calc.py\n---\nimport sys\n\ndef calculate(op, a, b):\n    ops = {'+': a+b, '-': a-b, '*': a*b, '/': a/b}\n    return ops.get(op, 'Unknown operator')\n\nif __name__ == '__main__':\n    a, op, b = float(sys.argv[1]), sys.argv[2], float(sys.argv[3])\n    print(calculate(op, a, b))",
+      "content": "calc.ts\n---\nimport sys\n\ndef calculate(op, a, b):\n    ops = {'+': a+b, '-': a-b, '*': a*b, '/': a/b}\n    return ops.get(op, 'Unknown operator')\n\nif __name__ == '__main__':\n    a, op, b = float(sys.argv[1]), sys.argv[2], float(sys.argv[3])\n    print(calculate(op, a, b))",
       "toolName": "write_file",
       "annotation": "Executing task #1 and #2: create file with operations"
     },
@@ -34,7 +34,7 @@
     },
     {
       "type": "tool_call",
-      "content": "python calc.py 10 + 5",
+      "content": "node calc.ts 10 + 5",
       "toolName": "bash",
       "annotation": "Executing task #4: testing"
     },

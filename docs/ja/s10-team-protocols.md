@@ -44,7 +44,7 @@ Trackers:
 
 1. リーダーがrequest_idを生成し、インボックス経由でシャットダウンを開始する。
 
-```python
+```ts
 shutdown_requests = {}
 
 def handle_shutdown_request(teammate: str) -> str:
@@ -57,7 +57,7 @@ def handle_shutdown_request(teammate: str) -> str:
 
 2. チームメイトがリクエストを受信し、承認または拒否で応答する。
 
-```python
+```ts
 if tool_name == "shutdown_response":
     req_id = args["request_id"]
     approve = args["approve"]
@@ -69,7 +69,7 @@ if tool_name == "shutdown_response":
 
 3. プラン承認も同一パターン。チームメイトがプランを提出(request_idを生成)、リーダーがレビュー(同じrequest_idを参照)。
 
-```python
+```ts
 plan_requests = {}
 
 def handle_plan_review(request_id, approve, feedback=""):
@@ -96,7 +96,7 @@ def handle_plan_review(request_id, approve, feedback=""):
 
 ```sh
 cd learn-claude-code
-python agents/s10_team_protocols.py
+npm run s10
 ```
 
 1. `Spawn alice as a coder. Then request her shutdown.`

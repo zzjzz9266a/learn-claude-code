@@ -49,7 +49,7 @@ Identity re-injection after compression:
 
 1. 队友循环分两个阶段: WORK 和 IDLE。LLM 停止调用工具 (或调用了 `idle`) 时, 进入 IDLE。
 
-```python
+```ts
 def _loop(self, name, role, prompt):
     while True:
         # -- WORK PHASE --
@@ -73,7 +73,7 @@ def _loop(self, name, role, prompt):
 
 2. 空闲阶段循环轮询收件箱和任务看板。
 
-```python
+```ts
 def _idle_poll(self, name, messages):
     for _ in range(IDLE_TIMEOUT // POLL_INTERVAL):  # 60s / 5s = 12
         time.sleep(POLL_INTERVAL)
@@ -94,7 +94,7 @@ def _idle_poll(self, name, messages):
 
 3. 任务看板扫描: 找 pending 状态、无 owner、未被阻塞的任务。
 
-```python
+```ts
 def scan_unclaimed_tasks() -> list:
     unclaimed = []
     for f in sorted(TASKS_DIR.glob("task_*.json")):
@@ -108,7 +108,7 @@ def scan_unclaimed_tasks() -> list:
 
 4. 身份重注入: 上下文过短 (说明发生了压缩) 时, 在开头插入身份块。
 
-```python
+```ts
 if len(messages) <= 3:
     messages.insert(0, {"role": "user",
         "content": f"<identity>You are '{name}', role: {role}, "
@@ -132,7 +132,7 @@ if len(messages) <= 3:
 
 ```sh
 cd learn-claude-code
-python agents/s11_autonomous_agents.py
+npm run s11
 ```
 
 试试这些 prompt (英文 prompt 对 LLM 效果更好, 也可以用中文):

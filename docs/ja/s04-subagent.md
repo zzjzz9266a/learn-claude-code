@@ -8,7 +8,7 @@
 
 ## 問題
 
-エージェントが作業するにつれ、messages配列は膨張し続ける。すべてのファイル読み取り、すべてのbash出力がコンテキストに永久に残る。「このプロジェクトはどのテストフレームワークを使っているか」という質問は5つのファイルを読む必要があるかもしれないが、親に必要なのは「pytest」という答えだけだ。
+エージェントが作業するにつれ、messages配列は膨張し続ける。すべてのファイル読み取り、すべてのbash出力がコンテキストに永久に残る。「このプロジェクトはどのテストフレームワークを使っているか」という質問は5つのファイルを読む必要があるかもしれないが、親に必要なのは「npm test」という答えだけだ。
 
 ## 解決策
 
@@ -30,7 +30,7 @@ Parent context stays clean. Subagent context is discarded.
 
 1. 親に`task`ツールを追加する。子は`task`を除くすべての基本ツールを取得する(再帰的な生成は不可)。
 
-```python
+```ts
 PARENT_TOOLS = CHILD_TOOLS + [
     {"name": "task",
      "description": "Spawn a subagent with fresh context.",
@@ -44,7 +44,7 @@ PARENT_TOOLS = CHILD_TOOLS + [
 
 2. サブエージェントは`messages=[]`で開始し、自身のループを実行する。最終テキストだけが親に返る。
 
-```python
+```ts
 def run_subagent(prompt: str) -> str:
     sub_messages = [{"role": "user", "content": prompt}]
     for _ in range(30):  # safety limit
@@ -86,9 +86,9 @@ def run_subagent(prompt: str) -> str:
 
 ```sh
 cd learn-claude-code
-python agents/s04_subagent.py
+npm run s04
 ```
 
 1. `Use a subtask to find what testing framework this project uses`
-2. `Delegate: read all .py files and summarize what each one does`
+2. `Delegate: read all .ts files and summarize what each one does`
 3. `Use a task to create a new module, then verify it from here`

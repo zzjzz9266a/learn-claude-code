@@ -47,7 +47,7 @@ skills/
 
 2. SkillLoaderが `SKILL.md` を再帰的に探索し、ディレクトリ名をスキル識別子として使用する。
 
-```python
+```ts
 class SkillLoader:
     def __init__(self, skills_dir: Path):
         self.skills = {}
@@ -73,7 +73,7 @@ class SkillLoader:
 
 3. 第1層はシステムプロンプトに配置。第2層は通常のツールハンドラ。
 
-```python
+```ts
 SYSTEM = f"""You are a coding agent at {WORKDIR}.
 Skills available:
 {SKILL_LOADER.get_descriptions()}"""
@@ -99,7 +99,7 @@ TOOL_HANDLERS = {
 
 ```sh
 cd learn-claude-code
-python agents/s05_skill_loading.py
+npm run s05
 ```
 
 1. `What skills are available?`
