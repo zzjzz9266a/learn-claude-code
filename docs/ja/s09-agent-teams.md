@@ -40,64 +40,86 @@ Communication:
 1. TeammateManagerがconfig.jsonでチーム名簿を管理する。
 
 ```ts
-class TeammateManager:
-    def __init__(self, team_dir: Path):
-        self.dir = team_dir
-        self.dir.mkdir(exist_ok=True)
-        self.config_path = self.dir / "config.json"
-        self.config = self._load_config()
-        self.threads = {}
+class TeammateManager {
+  constructor(private readonly teamDir: string) {
+    fs.mkdirSync(teamDir, { recursive: true });
+    this.configPath = path.join(teamDir, "config.json");
+    this.config = this.loadConfig();
+  }
+
+  private readonly configPath: string;
+  private config: TeamConfig;
+}
 ```
 
 2. `spawn()`がチームメイトを作成し、そのエージェントループをスレッドで開始する。
 
 ```ts
-def spawn(self, name: str, role: str, prompt: str) -> str:
-    member = {"name": name, "role": role, "status": "working"}
-    self.config["members"].append(member)
-    self._save_config()
-    thread = threading.Thread(
-        target=self._teammate_loop,
-        args=(name, role, prompt), daemon=True)
-    thread.start()
-    return f"Spawned teammate '{name}' (role: {role})"
+spawn(name: string, role: string, prompt: string): string {
+  this.config.members.push({ name, role, status: "working" });
+  this.saveConfig();
+  void this.runTeammateLoop(name, role, prompt);
+  return `Spawned teammate "${name}" (role: ${role})`;
+}
 ```
 
 3. MessageBus: 追記専用のJSONLインボックス。`send()`がJSON行を追記し、`read_inbox()`がすべて読み取ってドレインする。
 
 ```ts
-class MessageBus:
-    def send(self, sender, to, content, msg_type="message", extra=None):
-        msg = {"type": msg_type, "from": sender,
-               "content": content, "timestamp": time.time()}
-        if extra:
-            msg.update(extra)
-        with open(self.dir / f"{to}.jsonl", "a") as f:
-            f.write(json.dumps(msg) + "\n")
+class MessageBus {
+  send(
+    sender: string,
+    to: string,
+    content: string,
+    type = "message",
+    extra: Record<string, unknown> = {},
+  ) {
+    const message = {
+      type,
+      from: sender,
+      content,
+      timestamp: Date.now(),
+      ...extra,
+    };
+    fs.appendFileSync(this.inboxPath(to), `${JSON.stringify(message)}\n`);
+  }
 
-    def read_inbox(self, name):
-        path = self.dir / f"{name}.jsonl"
-        if not path.exists(): return "[]"
-        msgs = [json.loads(l) for l in path.read_text().strip().splitlines() if l]
-        path.write_text("")  # drain
-        return json.dumps(msgs, indent=2)
+  readInbox(name: string): string {
+    const inboxPath = this.inboxPath(name);
+    if (!fs.existsSync(inboxPath)) return "[]";
+    const content = fs.readFileSync(inboxPath, "utf8").trim();
+    fs.writeFileSync(inboxPath, "");
+    if (!content) return "[]";
+    return JSON.stringify(
+      content.split("\n").filter(Boolean).map((line) => JSON.parse(line)),
+      null,
+      2,
+    );
+  }
+}
 ```
 
 4. 各チームメイトは各LLM呼び出しの前にインボックスを確認し、受信メッセージをコンテキストに注入する。
 
 ```ts
-def _teammate_loop(self, name, role, prompt):
-    messages = [{"role": "user", "content": prompt}]
-    for _ in range(50):
-        inbox = BUS.read_inbox(name)
-        if inbox != "[]":
-            messages.append({"role": "user",
-                "content": f"<inbox>{inbox}</inbox>"})
-        response = client.messages.create(...)
-        if response.stop_reason != "tool_use":
-            break
-        # execute tools, append results...
-    self._find_member(name)["status"] = "idle"
+async runTeammateLoop(name: string, role: string, prompt: string) {
+  const messages: MessageParam[] = [{ role: "user", content: prompt }];
+
+  for (let round = 0; round < 50; round += 1) {
+    const inbox = BUS.readInbox(name);
+    if (inbox !== "[]") {
+      messages.push({ role: "user", content: `<inbox>${inbox}</inbox>` });
+    }
+
+    const response = await client.messages.create(/* ... */);
+    if (response.stop_reason !== "tool_use") break;
+
+    // execute tools, append results...
+  }
+
+  this.findMember(name).status = "idle";
+  this.saveConfig();
+}
 ```
 
 ## s08からの変更点

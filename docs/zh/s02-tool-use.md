@@ -25,8 +25,8 @@
                     tool_result | }                |
                                 +------------------+
 
-The dispatch map is a dict: {tool_name: handler_function}.
-One lookup replaces any if/elif chain.
+The dispatch map is a record: `{toolName: handler}`。
+一次查表替代整串分支判断。
 ```
 
 ## 工作原理
@@ -34,45 +34,59 @@ One lookup replaces any if/elif chain.
 1. 每个工具有一个处理函数。路径沙箱防止逃逸工作区。
 
 ```ts
-def safe_path(p: str) -> Path:
-    path = (WORKDIR / p).resolve()
-    if not path.is_relative_to(WORKDIR):
-        raise ValueError(f"Path escapes workspace: {p}")
-    return path
+function safePath(relativePath: string): string {
+  const resolved = path.resolve(WORKDIR, relativePath);
+  if (!resolved.startsWith(`${WORKDIR}${path.sep}`) && resolved !== WORKDIR) {
+    throw new Error(`Path escapes workspace: ${relativePath}`);
+  }
+  return resolved;
+}
 
-def run_read(path: str, limit: int = None) -> str:
-    text = safe_path(path).read_text()
-    lines = text.splitlines()
-    if limit and limit < len(lines):
-        lines = lines[:limit]
-    return "\n".join(lines)[:50000]
+function runRead(filePath: string, limit?: number): string {
+  const text = fs.readFileSync(safePath(filePath), "utf8");
+  const lines = text.split("\n");
+  const visible = typeof limit === "number" ? lines.slice(0, limit) : lines;
+  return visible.join("\n").slice(0, 50_000);
+}
 ```
 
 2. dispatch map 将工具名映射到处理函数。
 
 ```ts
-TOOL_HANDLERS = {
-    "bash":       lambda **kw: run_bash(kw["command"]),
-    "read_file":  lambda **kw: run_read(kw["path"], kw.get("limit")),
-    "write_file": lambda **kw: run_write(kw["path"], kw["content"]),
-    "edit_file":  lambda **kw: run_edit(kw["path"], kw["old_text"],
-                                        kw["new_text"]),
-}
+const TOOL_HANDLERS = {
+  bash: ({ command }: { command: string }) => runBash(command),
+  read_file: ({ path, limit }: { path: string; limit?: number }) =>
+    runRead(path, limit),
+  write_file: ({ path, content }: { path: string; content: string }) =>
+    runWrite(path, content),
+  edit_file: ({
+    path,
+    old_text,
+    new_text,
+  }: {
+    path: string;
+    old_text: string;
+    new_text: string;
+  }) => runEdit(path, old_text, new_text),
+};
 ```
 
 3. 循环中按名称查找处理函数。循环体本身与 s01 完全一致。
 
 ```ts
-for block in response.content:
-    if block.type == "tool_use":
-        handler = TOOL_HANDLERS.get(block.name)
-        output = handler(**block.input) if handler \
-            else f"Unknown tool: {block.name}"
-        results.append({
-            "type": "tool_result",
-            "tool_use_id": block.id,
-            "content": output,
-        })
+for (const block of response.content) {
+  if (block.type !== "tool_use") continue;
+  const handler = TOOL_HANDLERS[block.name as keyof typeof TOOL_HANDLERS];
+  const output = handler
+    ? await handler(block.input as never)
+    : `Unknown tool: ${block.name}`;
+
+  results.push({
+    type: "tool_result",
+    tool_use_id: block.id,
+    content: output,
+  });
+}
 ```
 
 加工具 = 加 handler + 加 schema。循环永远不变。
@@ -82,8 +96,8 @@ for block in response.content:
 | 组件           | 之前 (s01)         | 之后 (s02)                     |
 |----------------|--------------------|--------------------------------|
 | Tools          | 1 (仅 bash)        | 4 (bash, read, write, edit)    |
-| Dispatch       | 硬编码 bash 调用   | `TOOL_HANDLERS` 字典           |
-| 路径安全       | 无                 | `safe_path()` 沙箱             |
+| Dispatch       | 硬编码 bash 调用   | `TOOL_HANDLERS` 记录表         |
+| 路径安全       | 无                 | `safePath()` 沙箱              |
 | Agent loop     | 不变               | 不变                           |
 
 ## 试一试

@@ -31,44 +31,59 @@ Parent context stays clean. Subagent context is discarded.
 1. 父 Agent 有一个 `task` 工具。Subagent 拥有除 `task` 外的所有基础工具 (禁止递归生成)。
 
 ```ts
-PARENT_TOOLS = CHILD_TOOLS + [
-    {"name": "task",
-     "description": "Spawn a subagent with fresh context.",
-     "input_schema": {
-         "type": "object",
-         "properties": {"prompt": {"type": "string"}},
-         "required": ["prompt"],
-     }},
-]
+const PARENT_TOOLS = [
+  ...CHILD_TOOLS,
+  {
+    name: "task",
+    description: "Spawn a subagent with fresh context.",
+    input_schema: {
+      type: "object",
+      properties: {
+        prompt: { type: "string" },
+      },
+      required: ["prompt"],
+    },
+  },
+];
 ```
 
 2. Subagent 以 `messages=[]` 启动, 运行自己的循环。只有最终文本返回给父 Agent。
 
 ```ts
-def run_subagent(prompt: str) -> str:
-    sub_messages = [{"role": "user", "content": prompt}]
-    for _ in range(30):  # safety limit
-        response = client.messages.create(
-            model=MODEL, system=SUBAGENT_SYSTEM,
-            messages=sub_messages,
-            tools=CHILD_TOOLS, max_tokens=8000,
-        )
-        sub_messages.append({"role": "assistant",
-                             "content": response.content})
-        if response.stop_reason != "tool_use":
-            break
-        results = []
-        for block in response.content:
-            if block.type == "tool_use":
-                handler = TOOL_HANDLERS.get(block.name)
-                output = handler(**block.input)
-                results.append({"type": "tool_result",
-                    "tool_use_id": block.id,
-                    "content": str(output)[:50000]})
-        sub_messages.append({"role": "user", "content": results})
-    return "".join(
-        b.text for b in response.content if hasattr(b, "text")
-    ) or "(no summary)"
+async function runSubagent(prompt: string): Promise<string> {
+  const subMessages: MessageParam[] = [{ role: "user", content: prompt }];
+  let response: Message | null = null;
+
+  for (let round = 0; round < 30; round += 1) {
+    response = await client.messages.create({
+      model: MODEL,
+      system: SUBAGENT_SYSTEM,
+      messages: subMessages,
+      tools: CHILD_TOOLS,
+      max_tokens: 8_000,
+    });
+
+    subMessages.push({ role: "assistant", content: response.content });
+
+    if (response.stop_reason !== "tool_use") break;
+
+    const results: ToolResultBlockParam[] = [];
+    for (const block of response.content) {
+      if (block.type !== "tool_use") continue;
+      const handler = TOOL_HANDLERS[block.name];
+      const output = handler ? await handler(block.input) : "Unknown tool";
+      results.push({
+        type: "tool_result",
+        tool_use_id: block.id,
+        content: String(output).slice(0, 50_000),
+      });
+    }
+
+    subMessages.push({ role: "user", content: results });
+  }
+
+  return response ? extractText(response.content) || "(no summary)" : "(no summary)";
+}
 ```
 
 Subagent 可能跑了 30+ 次工具调用, 但整个消息历史直接丢弃。父 Agent 收到的只是一段摘要文本, 作为普通 `tool_result` 返回。

@@ -39,34 +39,38 @@ State machines:
 1. **タスクを作成する。** まず目標を永続化する。
 
 ```ts
-TASKS.create("Implement auth refactor")
-# -> .tasks/task_1.json  status=pending  worktree=""
+TASKS.create("Implement auth refactor");
+// -> .tasks/task_1.json  status=pending  worktree=""
 ```
 
 2. **worktreeを作成してタスクに紐付ける。** `task_id`を渡すと、タスクが自動的に`in_progress`に遷移する。
 
 ```ts
-WORKTREES.create("auth-refactor", task_id=1)
-# -> git worktree add -b wt/auth-refactor .worktrees/auth-refactor HEAD
-# -> index.json gets new entry, task_1.json gets worktree="auth-refactor"
+WORKTREES.create("auth-refactor", { taskId: 1 });
+// -> git worktree add -b wt/auth-refactor .worktrees/auth-refactor HEAD
+// -> index.json gets new entry, task_1.json gets worktree="auth-refactor"
 ```
 
 紐付けは両側に状態を書き込む:
 
 ```ts
-def bind_worktree(self, task_id, worktree):
-    task = self._load(task_id)
-    task["worktree"] = worktree
-    if task["status"] == "pending":
-        task["status"] = "in_progress"
-    self._save(task)
+bindWorktree(taskId: number, worktree: string) {
+  const task = this.load(taskId);
+  task.worktree = worktree;
+  if (task.status === "pending") {
+    task.status = "in_progress";
+  }
+  this.save(task);
+}
 ```
 
 3. **worktree内でコマンドを実行する。** `cwd`が分離ディレクトリを指す。
 
 ```ts
-subprocess.run(command, shell=True, cwd=worktree_path,
-               capture_output=True, text=True, timeout=300)
+await runBash(command, {
+  cwd: worktreePath,
+  timeoutMs: 300_000,
+});
 ```
 
 4. **終了処理。** 2つの選択肢:
@@ -74,12 +78,15 @@ subprocess.run(command, shell=True, cwd=worktree_path,
    - `worktree_remove(name, complete_task=True)` -- ディレクトリを削除し、紐付けられたタスクを完了し、イベントを発行する。1回の呼び出しで後片付けと完了を処理する。
 
 ```ts
-def remove(self, name, force=False, complete_task=False):
-    self._run_git(["worktree", "remove", wt["path"]])
-    if complete_task and wt.get("task_id") is not None:
-        self.tasks.update(wt["task_id"], status="completed")
-        self.tasks.unbind_worktree(wt["task_id"])
-        self.events.emit("task.completed", ...)
+remove(name: string, options: { force?: boolean; completeTask?: boolean } = {}) {
+  this.runGit(["worktree", "remove", this.getPath(name)]);
+  if (options.completeTask && this.getTaskId(name) != null) {
+    const taskId = this.getTaskId(name)!;
+    this.tasks.update(taskId, { status: "completed" });
+    this.tasks.unbindWorktree(taskId);
+    this.events.emit("task.completed", { taskId, worktree: name });
+  }
+}
 ```
 
 5. **イベントストリーム。** ライフサイクルの各ステップが`.worktrees/events.jsonl`に記録される:

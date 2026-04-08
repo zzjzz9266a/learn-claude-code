@@ -30,66 +30,81 @@ One exit condition controls the entire flow. The loop runs until the model stops
 1. User prompt becomes the first message.
 
 ```ts
-messages.append({"role": "user", "content": query})
+messages.push({ role: "user", content: query });
 ```
 
 2. Send messages + tool definitions to the LLM.
 
 ```ts
-response = client.messages.create(
-    model=MODEL, system=SYSTEM, messages=messages,
-    tools=TOOLS, max_tokens=8000,
-)
+const response = await client.messages.create({
+  model: MODEL,
+  system: SYSTEM,
+  messages,
+  tools: TOOLS,
+  max_tokens: 8000,
+});
 ```
 
 3. Append the assistant response. Check `stop_reason` -- if the model didn't call a tool, we're done.
 
 ```ts
-messages.append({"role": "assistant", "content": response.content})
-if response.stop_reason != "tool_use":
-    return
+messages.push({ role: "assistant", content: response.content });
+if (response.stop_reason !== "tool_use") {
+  return;
+}
 ```
 
 4. Execute each tool call, collect results, append as a user message. Loop back to step 2.
 
 ```ts
-results = []
-for block in response.content:
-    if block.type == "tool_use":
-        output = run_bash(block.input["command"])
-        results.append({
-            "type": "tool_result",
-            "tool_use_id": block.id,
-            "content": output,
-        })
-messages.append({"role": "user", "content": results})
+const results = [];
+for (const block of response.content) {
+  if (block.type !== "tool_use") continue;
+  const output = await runCommand(block.input.command);
+  results.push({
+    type: "tool_result",
+    tool_use_id: block.id,
+    content: output,
+  });
+}
+messages.push({ role: "user", content: results });
 ```
 
 Assembled into one function:
 
 ```ts
-def agent_loop(query):
-    messages = [{"role": "user", "content": query}]
-    while True:
-        response = client.messages.create(
-            model=MODEL, system=SYSTEM, messages=messages,
-            tools=TOOLS, max_tokens=8000,
-        )
-        messages.append({"role": "assistant", "content": response.content})
+async function agentLoop(query: string) {
+  const messages: Message[] = [{ role: "user", content: query }];
 
-        if response.stop_reason != "tool_use":
-            return
+  while (true) {
+    const response = await client.messages.create({
+      model: MODEL,
+      system: SYSTEM,
+      messages,
+      tools: TOOLS,
+      max_tokens: 8000,
+    });
 
-        results = []
-        for block in response.content:
-            if block.type == "tool_use":
-                output = run_bash(block.input["command"])
-                results.append({
-                    "type": "tool_result",
-                    "tool_use_id": block.id,
-                    "content": output,
-                })
-        messages.append({"role": "user", "content": results})
+    messages.push({ role: "assistant", content: response.content });
+
+    if (response.stop_reason !== "tool_use") {
+      return;
+    }
+
+    const results = [];
+    for (const block of response.content) {
+      if (block.type !== "tool_use") continue;
+      const output = await runCommand(block.input.command);
+      results.push({
+        type: "tool_result",
+        tool_use_id: block.id,
+        content: output,
+      });
+    }
+
+    messages.push({ role: "user", content: results });
+  }
+}
 ```
 
 That's the entire agent in under 30 lines. Everything else in this course layers on top -- without changing the loop.
@@ -98,7 +113,7 @@ That's the entire agent in under 30 lines. Everything else in this course layers
 
 | Component     | Before     | After                          |
 |---------------|------------|--------------------------------|
-| Agent loop    | (none)     | `while True` + stop_reason     |
+| Agent loop    | (none)     | `while (true)` + stop_reason   |
 | Tools         | (none)     | `bash` (one tool)              |
 | Messages      | (none)     | Accumulating list              |
 | Control flow  | (none)     | `stop_reason != "tool_use"`    |

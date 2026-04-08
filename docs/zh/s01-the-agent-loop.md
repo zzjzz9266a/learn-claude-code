@@ -30,66 +30,83 @@
 1. 用户 prompt 作为第一条消息。
 
 ```ts
-messages.append({"role": "user", "content": query})
+const messages: MessageParam[] = [{ role: "user", content: query }];
 ```
 
 2. 将消息和工具定义一起发给 LLM。
 
 ```ts
-response = client.messages.create(
-    model=MODEL, system=SYSTEM, messages=messages,
-    tools=TOOLS, max_tokens=8000,
-)
+const response = await client.messages.create({
+  model: MODEL,
+  system: SYSTEM,
+  messages,
+  tools: TOOLS,
+  max_tokens: 8_000,
+});
 ```
 
 3. 追加助手响应。检查 `stop_reason` -- 如果模型没有调用工具, 结束。
 
 ```ts
-messages.append({"role": "assistant", "content": response.content})
-if response.stop_reason != "tool_use":
-    return
+messages.push({ role: "assistant", content: response.content });
+if (response.stop_reason !== "tool_use") {
+  return extractText(response.content);
+}
 ```
 
 4. 执行每个工具调用, 收集结果, 作为 user 消息追加。回到第 2 步。
 
 ```ts
-results = []
-for block in response.content:
-    if block.type == "tool_use":
-        output = run_bash(block.input["command"])
-        results.append({
-            "type": "tool_result",
-            "tool_use_id": block.id,
-            "content": output,
-        })
-messages.append({"role": "user", "content": results})
+const results: ToolResultBlockParam[] = [];
+
+for (const block of response.content) {
+  if (block.type !== "tool_use" || block.name !== "bash") continue;
+  const output = await runBash(String(block.input.command ?? ""));
+  results.push({
+    type: "tool_result",
+    tool_use_id: block.id,
+    content: output,
+  });
+}
+
+messages.push({ role: "user", content: results });
 ```
 
 组装为一个完整函数:
 
 ```ts
-def agent_loop(query):
-    messages = [{"role": "user", "content": query}]
-    while True:
-        response = client.messages.create(
-            model=MODEL, system=SYSTEM, messages=messages,
-            tools=TOOLS, max_tokens=8000,
-        )
-        messages.append({"role": "assistant", "content": response.content})
+async function agentLoop(query: string): Promise<string> {
+  const messages: MessageParam[] = [{ role: "user", content: query }];
 
-        if response.stop_reason != "tool_use":
-            return
+  while (true) {
+    const response = await client.messages.create({
+      model: MODEL,
+      system: SYSTEM,
+      messages,
+      tools: TOOLS,
+      max_tokens: 8_000,
+    });
 
-        results = []
-        for block in response.content:
-            if block.type == "tool_use":
-                output = run_bash(block.input["command"])
-                results.append({
-                    "type": "tool_result",
-                    "tool_use_id": block.id,
-                    "content": output,
-                })
-        messages.append({"role": "user", "content": results})
+    messages.push({ role: "assistant", content: response.content });
+
+    if (response.stop_reason !== "tool_use") {
+      return extractText(response.content);
+    }
+
+    const results: ToolResultBlockParam[] = [];
+    for (const block of response.content) {
+      if (block.type !== "tool_use" || block.name !== "bash") continue;
+      const output = await runBash(String(block.input.command ?? ""));
+      results.push({
+        type: "tool_result",
+        tool_use_id: block.id,
+        content: output,
+      });
+    }
+
+    messages.push({ role: "user", content: results });
+  }
+}
 ```
 
 不到 30 行, 这就是整个 Agent。后面 11 个章节都在这个循环上叠加机制 -- 循环本身始终不变。
@@ -98,7 +115,7 @@ def agent_loop(query):
 
 | 组件          | 之前       | 之后                           |
 |---------------|------------|--------------------------------|
-| Agent loop    | (无)       | `while True` + stop_reason     |
+| Agent loop    | (无)       | `while (true)` + stop_reason   |
 | Tools         | (无)       | `bash` (单一工具)              |
 | Messages      | (无)       | 累积式消息列表                 |
 | Control flow  | (无)       | `stop_reason != "tool_use"`    |

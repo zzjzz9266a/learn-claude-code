@@ -37,40 +37,46 @@
 1. TodoManagerはアイテムのリストをステータス付きで保持する。`in_progress`にできるのは同時に1つだけ。
 
 ```ts
-class TodoManager:
-    def update(self, items: list) -> str:
-        validated, in_progress_count = [], 0
-        for item in items:
-            status = item.get("status", "pending")
-            if status == "in_progress":
-                in_progress_count += 1
-            validated.append({"id": item["id"], "text": item["text"],
-                              "status": status})
-        if in_progress_count > 1:
-            raise ValueError("Only one task can be in_progress")
-        self.items = validated
-        return self.render()
+class TodoManager {
+  update(items: TodoItemInput[]): string {
+    let inProgressCount = 0;
+    const validated = items.map((item) => {
+      const status = item.status ?? "pending";
+      if (status === "in_progress") inProgressCount += 1;
+      return { id: item.id, text: item.text, status };
+    });
+
+    if (inProgressCount > 1) {
+      throw new Error("Only one task can be in_progress");
+    }
+
+    this.items = validated;
+    return this.render();
+  }
+}
 ```
 
 2. `todo`ツールは他のツールと同様にディスパッチマップに追加される。
 
 ```ts
-TOOL_HANDLERS = {
-    # ...base tools...
-    "todo": lambda **kw: TODO.update(kw["items"]),
-}
+const TOOL_HANDLERS = {
+  ...BASE_TOOL_HANDLERS,
+  todo: ({ items }: { items: TodoItemInput[] }) => TODO.update(items),
+};
 ```
 
 3. nagリマインダーが、モデルが3ラウンド以上`todo`を呼ばなかった場合にナッジを注入する。
 
 ```ts
-if rounds_since_todo >= 3 and messages:
-    last = messages[-1]
-    if last["role"] == "user" and isinstance(last.get("content"), list):
-        last["content"].insert(0, {
-            "type": "text",
-            "text": "<reminder>Update your todos.</reminder>",
-        })
+if (roundsSinceTodo >= 3 && messages.length > 0) {
+  const lastMessage = messages.at(-1);
+  if (lastMessage?.role === "user" && Array.isArray(lastMessage.content)) {
+    lastMessage.content.unshift({
+      type: "text",
+      text: "<reminder>Update your todos.</reminder>",
+    });
+  }
+}
 ```
 
 「一度にin_progressは1つだけ」の制約が逐次的な集中を強制し、nagリマインダーが説明責任を生む。

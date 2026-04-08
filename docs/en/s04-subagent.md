@@ -31,44 +31,56 @@ Parent context stays clean. Subagent context is discarded.
 1. The parent gets a `task` tool. The child gets all base tools except `task` (no recursive spawning).
 
 ```ts
-PARENT_TOOLS = CHILD_TOOLS + [
-    {"name": "task",
-     "description": "Spawn a subagent with fresh context.",
-     "input_schema": {
-         "type": "object",
-         "properties": {"prompt": {"type": "string"}},
-         "required": ["prompt"],
-     }},
-]
+const childTools = [bashTool, readFileTool, writeFileTool, editFileTool];
+const parentTools = [
+  ...childTools,
+  {
+    name: "task",
+    description: "Spawn a subagent with fresh context.",
+    input_schema: {
+      type: "object",
+      properties: { prompt: { type: "string" } },
+      required: ["prompt"],
+    },
+  },
+];
 ```
 
 2. The subagent starts with `messages=[]` and runs its own loop. Only the final text returns to the parent.
 
 ```ts
-def run_subagent(prompt: str) -> str:
-    sub_messages = [{"role": "user", "content": prompt}]
-    for _ in range(30):  # safety limit
-        response = client.messages.create(
-            model=MODEL, system=SUBAGENT_SYSTEM,
-            messages=sub_messages,
-            tools=CHILD_TOOLS, max_tokens=8000,
-        )
-        sub_messages.append({"role": "assistant",
-                             "content": response.content})
-        if response.stop_reason != "tool_use":
-            break
-        results = []
-        for block in response.content:
-            if block.type == "tool_use":
-                handler = TOOL_HANDLERS.get(block.name)
-                output = handler(**block.input)
-                results.append({"type": "tool_result",
-                    "tool_use_id": block.id,
-                    "content": str(output)[:50000]})
-        sub_messages.append({"role": "user", "content": results})
-    return "".join(
-        b.text for b in response.content if hasattr(b, "text")
-    ) or "(no summary)"
+async function runSubagent(prompt: string) {
+  const subMessages: Message[] = [{ role: "user", content: prompt }];
+
+  for (let i = 0; i < 30; i += 1) {
+    const response = await client.messages.create({
+      model: MODEL,
+      messages: subMessages,
+      tools: childTools,
+      max_tokens: 8000,
+    });
+
+    subMessages.push({ role: "assistant", content: response.content });
+    if (response.stop_reason !== "tool_use") {
+      return extractText(response.content) || "(no summary)";
+    }
+
+    const results = [];
+    for (const block of response.content) {
+      if (block.type !== "tool_use") continue;
+      const output = await childHandlers[block.name](block.input);
+      results.push({
+        type: "tool_result",
+        tool_use_id: block.id,
+        content: String(output).slice(0, 50_000),
+      });
+    }
+
+    subMessages.push({ role: "user", content: results });
+  }
+
+  return "(subagent failed)";
+}
 ```
 
 The child's entire message history (possibly 30+ tool calls) is discarded. The parent receives a one-paragraph summary as a normal `tool_result`.

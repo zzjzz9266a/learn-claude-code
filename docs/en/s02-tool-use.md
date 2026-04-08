@@ -25,8 +25,8 @@ The key insight: adding tools does not require changing the loop.
                     tool_result | }                |
                                 +------------------+
 
-The dispatch map is a dict: {tool_name: handler_function}.
-One lookup replaces any if/elif chain.
+The dispatch map is a record: `{toolName: handler}`.
+One lookup replaces any branching chain.
 ```
 
 ## How It Works
@@ -34,45 +34,59 @@ One lookup replaces any if/elif chain.
 1. Each tool gets a handler function. Path sandboxing prevents workspace escape.
 
 ```ts
-def safe_path(p: str) -> Path:
-    path = (WORKDIR / p).resolve()
-    if not path.is_relative_to(WORKDIR):
-        raise ValueError(f"Path escapes workspace: {p}")
-    return path
+function safePath(relativePath: string): string {
+  const resolved = path.resolve(WORKDIR, relativePath);
+  if (!resolved.startsWith(`${WORKDIR}${path.sep}`) && resolved !== WORKDIR) {
+    throw new Error(`Path escapes workspace: ${relativePath}`);
+  }
+  return resolved;
+}
 
-def run_read(path: str, limit: int = None) -> str:
-    text = safe_path(path).read_text()
-    lines = text.splitlines()
-    if limit and limit < len(lines):
-        lines = lines[:limit]
-    return "\n".join(lines)[:50000]
+function runRead(filePath: string, limit?: number): string {
+  const text = fs.readFileSync(safePath(filePath), "utf8");
+  const lines = text.split("\n");
+  const visible = typeof limit === "number" ? lines.slice(0, limit) : lines;
+  return visible.join("\n").slice(0, 50_000);
+}
 ```
 
 2. The dispatch map links tool names to handlers.
 
 ```ts
-TOOL_HANDLERS = {
-    "bash":       lambda **kw: run_bash(kw["command"]),
-    "read_file":  lambda **kw: run_read(kw["path"], kw.get("limit")),
-    "write_file": lambda **kw: run_write(kw["path"], kw["content"]),
-    "edit_file":  lambda **kw: run_edit(kw["path"], kw["old_text"],
-                                        kw["new_text"]),
-}
+const TOOL_HANDLERS = {
+  bash: ({ command }: { command: string }) => runBash(command),
+  read_file: ({ path, limit }: { path: string; limit?: number }) =>
+    runRead(path, limit),
+  write_file: ({ path, content }: { path: string; content: string }) =>
+    runWrite(path, content),
+  edit_file: ({
+    path,
+    old_text,
+    new_text,
+  }: {
+    path: string;
+    old_text: string;
+    new_text: string;
+  }) => runEdit(path, old_text, new_text),
+};
 ```
 
 3. In the loop, look up the handler by name. The loop body itself is unchanged from s01.
 
 ```ts
-for block in response.content:
-    if block.type == "tool_use":
-        handler = TOOL_HANDLERS.get(block.name)
-        output = handler(**block.input) if handler \
-            else f"Unknown tool: {block.name}"
-        results.append({
-            "type": "tool_result",
-            "tool_use_id": block.id,
-            "content": output,
-        })
+for (const block of response.content) {
+  if (block.type !== "tool_use") continue;
+  const handler = TOOL_HANDLERS[block.name as keyof typeof TOOL_HANDLERS];
+  const output = handler
+    ? await handler(block.input as never)
+    : `Unknown tool: ${block.name}`;
+
+  results.push({
+    type: "tool_result",
+    tool_use_id: block.id,
+    content: output,
+  });
+}
 ```
 
 Add a tool = add a handler + add a schema entry. The loop never changes.
@@ -82,8 +96,8 @@ Add a tool = add a handler + add a schema entry. The loop never changes.
 | Component      | Before (s01)       | After (s02)                |
 |----------------|--------------------|----------------------------|
 | Tools          | 1 (bash only)      | 4 (bash, read, write, edit)|
-| Dispatch       | Hardcoded bash call | `TOOL_HANDLERS` dict       |
-| Path safety    | None               | `safe_path()` sandbox      |
+| Dispatch       | Hardcoded bash call | `TOOL_HANDLERS` record     |
+| Path safety    | None               | `safePath()` sandbox       |
 | Agent loop     | Unchanged          | Unchanged                  |
 
 ## Try It

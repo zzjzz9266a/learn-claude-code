@@ -40,64 +40,52 @@ Communication:
 1. TeammateManager maintains config.json with the team roster.
 
 ```ts
-class TeammateManager:
-    def __init__(self, team_dir: Path):
-        self.dir = team_dir
-        self.dir.mkdir(exist_ok=True)
-        self.config_path = self.dir / "config.json"
-        self.config = self._load_config()
-        self.threads = {}
+const teammates: Array<{ name: string; role: string; status: string }> = [];
 ```
 
 2. `spawn()` creates a teammate and starts its agent loop in a thread.
 
 ```ts
-def spawn(self, name: str, role: str, prompt: str) -> str:
-    member = {"name": name, "role": role, "status": "working"}
-    self.config["members"].append(member)
-    self._save_config()
-    thread = threading.Thread(
-        target=self._teammate_loop,
-        args=(name, role, prompt), daemon=True)
-    thread.start()
-    return f"Spawned teammate '{name}' (role: {role})"
+spawn_teammate: ({ name, role }: { name: string; role: string }) => {
+  teammates.push({ name, role, status: "working" });
+  return `Spawned '${name}' (role: ${role})`;
+},
 ```
 
 3. MessageBus: append-only JSONL inboxes. `send()` appends a JSON line; `read_inbox()` reads all and drains.
 
 ```ts
-class MessageBus:
-    def send(self, sender, to, content, msg_type="message", extra=None):
-        msg = {"type": msg_type, "from": sender,
-               "content": content, "timestamp": time.time()}
-        if extra:
-            msg.update(extra)
-        with open(self.dir / f"{to}.jsonl", "a") as f:
-            f.write(json.dumps(msg) + "\n")
+class MessageBus {
+  send(sender: string, to: string, content: string, msgType = "message") {
+    appendFileSync(join(this.inboxDir, `${to}.jsonl`), JSON.stringify({
+      type: msgType,
+      from: sender,
+      content,
+      timestamp: Date.now() / 1000,
+    }) + "\n");
+  }
 
-    def read_inbox(self, name):
-        path = self.dir / f"{name}.jsonl"
-        if not path.exists(): return "[]"
-        msgs = [json.loads(l) for l in path.read_text().strip().splitlines() if l]
-        path.write_text("")  # drain
-        return json.dumps(msgs, indent=2)
+  readInbox(name: string) {
+    const path = join(this.inboxDir, `${name}.jsonl`);
+    if (!existsSync(path)) return [];
+    const messages = readFileSync(path, "utf8").split(/\r?\n/).filter(Boolean).map(JSON.parse);
+    writeFileSync(path, "");
+    return messages;
+  }
+}
 ```
 
 4. Each teammate checks its inbox before every LLM call, injecting received messages into context.
 
 ```ts
-def _teammate_loop(self, name, role, prompt):
-    messages = [{"role": "user", "content": prompt}]
-    for _ in range(50):
-        inbox = BUS.read_inbox(name)
-        if inbox != "[]":
-            messages.append({"role": "user",
-                "content": f"<inbox>{inbox}</inbox>"})
-        response = client.messages.create(...)
-        if response.stop_reason != "tool_use":
-            break
-        # execute tools, append results...
-    self._find_member(name)["status"] = "idle"
+const handlers = {
+  send_message: ({ to, content, msg_type }: any) => bus.send("lead", to, content, msg_type),
+  read_inbox: () => JSON.stringify(bus.readInbox("lead"), null, 2),
+  list_teammates: () =>
+    teammates.length === 0
+      ? "No teammates."
+      : teammates.map((member) => `${member.name} (${member.role}): ${member.status}`).join("\n"),
+};
 ```
 
 ## What Changed From s08

@@ -50,71 +50,84 @@ Identity re-injection after compression:
 1. チームメイトのループはWORKとIDLEの2フェーズ。LLMがツール呼び出しを止めた時(または`idle`ツールを呼んだ時)、IDLEフェーズに入る。
 
 ```ts
-def _loop(self, name, role, prompt):
-    while True:
-        # -- WORK PHASE --
-        messages = [{"role": "user", "content": prompt}]
-        for _ in range(50):
-            response = client.messages.create(...)
-            if response.stop_reason != "tool_use":
-                break
-            # execute tools...
-            if idle_requested:
-                break
+async function teammateLoop(name: string, role: string, prompt: string) {
+  const messages: MessageParam[] = [{ role: "user", content: prompt }];
 
-        # -- IDLE PHASE --
-        self._set_status(name, "idle")
-        resume = self._idle_poll(name, messages)
-        if not resume:
-            self._set_status(name, "shutdown")
-            return
-        self._set_status(name, "working")
+  while (true) {
+    for (let round = 0; round < 50; round += 1) {
+      const response = await client.messages.create(/* ... */);
+      if (response.stop_reason !== "tool_use") break;
+      // execute tools...
+      if (idleRequested) break;
+    }
+
+    setStatus(name, "idle");
+    const resume = await idlePoll(name, messages);
+    if (!resume) {
+      setStatus(name, "shutdown");
+      return;
+    }
+    setStatus(name, "working");
+  }
+}
 ```
 
 2. IDLEフェーズがインボックスとタスクボードをポーリングする。
 
 ```ts
-def _idle_poll(self, name, messages):
-    for _ in range(IDLE_TIMEOUT // POLL_INTERVAL):  # 60s / 5s = 12
-        time.sleep(POLL_INTERVAL)
-        inbox = BUS.read_inbox(name)
-        if inbox:
-            messages.append({"role": "user",
-                "content": f"<inbox>{inbox}</inbox>"})
-            return True
-        unclaimed = scan_unclaimed_tasks()
-        if unclaimed:
-            claim_task(unclaimed[0]["id"], name)
-            messages.append({"role": "user",
-                "content": f"<auto-claimed>Task #{unclaimed[0]['id']}: "
-                           f"{unclaimed[0]['subject']}</auto-claimed>"})
-            return True
-    return False  # timeout -> shutdown
+async function idlePoll(name: string, messages: MessageParam[]): Promise<boolean> {
+  for (let poll = 0; poll < IDLE_TIMEOUT / POLL_INTERVAL; poll += 1) {
+    await sleep(POLL_INTERVAL);
+
+    const inbox = BUS.readInbox(name);
+    if (inbox !== "[]") {
+      messages.push({ role: "user", content: `<inbox>${inbox}</inbox>` });
+      return true;
+    }
+
+    const unclaimed = scanUnclaimedTasks();
+    if (unclaimed.length > 0) {
+      claimTask(unclaimed[0].id, name);
+      messages.push({
+        role: "user",
+        content: `<auto-claimed>Task #${unclaimed[0].id}: ${unclaimed[0].subject}</auto-claimed>`,
+      });
+      return true;
+    }
+  }
+
+  return false;
+}
 ```
 
 3. タスクボードスキャン: pendingかつ未割り当てかつブロックされていないタスクを探す。
 
 ```ts
-def scan_unclaimed_tasks() -> list:
-    unclaimed = []
-    for f in sorted(TASKS_DIR.glob("task_*.json")):
-        task = json.loads(f.read_text())
-        if (task.get("status") == "pending"
-                and not task.get("owner")
-                and not task.get("blockedBy")):
-            unclaimed.append(task)
-    return unclaimed
+function scanUnclaimedTasks(): TaskRecord[] {
+  return listTaskFiles(TASKS_DIR)
+    .map((file) => JSON.parse(fs.readFileSync(file, "utf8")) as TaskRecord)
+    .filter(
+      (task) =>
+        task.status === "pending" &&
+        !task.owner &&
+        task.blockedBy.length === 0,
+    );
+}
 ```
 
 4. アイデンティティ再注入: コンテキストが短すぎる(圧縮が起きた)場合にアイデンティティブロックを挿入する。
 
 ```ts
-if len(messages) <= 3:
-    messages.insert(0, {"role": "user",
-        "content": f"<identity>You are '{name}', role: {role}, "
-                   f"team: {team_name}. Continue your work.</identity>"})
-    messages.insert(1, {"role": "assistant",
-        "content": f"I am {name}. Continuing."})
+if (messages.length <= 3) {
+  messages.unshift({
+    role: "assistant",
+    content: `I am ${name}. Continuing.`,
+  });
+  messages.unshift({
+    role: "user",
+    content: `<identity>You are "${name}", role: ${role}, team: ${teamName}. Continue your work.</identity>`,
+  });
+}
 ```
 
 ## s10からの変更点

@@ -7,7 +7,7 @@ import { cwd } from "node:process";
 import { spawn } from "node:child_process";
 import { randomUUID } from "node:crypto";
 
-loadDotenv({ override: true });
+loadDotenv({ override: true, quiet: true });
 
 if (process.env.ANTHROPIC_BASE_URL) {
   delete process.env.ANTHROPIC_AUTH_TOKEN;

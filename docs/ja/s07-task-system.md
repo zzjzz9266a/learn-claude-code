@@ -51,59 +51,88 @@ s03のTodoManagerはメモリ上のフラットなチェックリストに過ぎ
 1. **TaskManager**: タスクごとに1つのJSONファイル、依存グラフ付きCRUD。
 
 ```ts
-class TaskManager:
-    def __init__(self, tasks_dir: Path):
-        self.dir = tasks_dir
-        self.dir.mkdir(exist_ok=True)
-        self._next_id = self._max_id() + 1
+class TaskManager {
+  constructor(private readonly tasksDir: string) {
+    fs.mkdirSync(tasksDir, { recursive: true });
+    this.nextId = this.getMaxId() + 1;
+  }
 
-    def create(self, subject, description=""):
-        task = {"id": self._next_id, "subject": subject,
-                "status": "pending", "blockedBy": [],
-                "owner": ""}
-        self._save(task)
-        self._next_id += 1
-        return json.dumps(task, indent=2)
+  private nextId: number;
+
+  create(subject: string, description = ""): string {
+    const task = {
+      id: this.nextId,
+      subject,
+      description,
+      status: "pending",
+      blockedBy: [],
+      owner: "",
+    };
+    this.save(task);
+    this.nextId += 1;
+    return JSON.stringify(task, null, 2);
+  }
+}
 ```
 
 2. **依存解除**: タスク完了時に、他タスクの`blockedBy`リストから完了IDを除去し、後続タスクをアンブロックする。
 
 ```ts
-def _clear_dependency(self, completed_id):
-    for f in self.dir.glob("task_*.json"):
-        task = json.loads(f.read_text())
-        if completed_id in task.get("blockedBy", []):
-            task["blockedBy"].remove(completed_id)
-            self._save(task)
+private clearDependency(completedId: number) {
+  for (const file of listTaskFiles(this.tasksDir)) {
+    const task = this.loadFromFile(file);
+    if (!task.blockedBy.includes(completedId)) continue;
+    task.blockedBy = task.blockedBy.filter((id) => id !== completedId);
+    this.save(task);
+  }
+}
 ```
 
 3. **ステータス遷移 + 依存配線**: `update`がステータス変更と依存エッジを担う。
 
 ```ts
-def update(self, task_id, status=None,
-           add_blocked_by=None, remove_blocked_by=None):
-    task = self._load(task_id)
-    if status:
-        task["status"] = status
-        if status == "completed":
-            self._clear_dependency(task_id)
-    if add_blocked_by:
-        task["blockedBy"] = list(set(task["blockedBy"] + add_blocked_by))
-    if remove_blocked_by:
-        task["blockedBy"] = [x for x in task["blockedBy"] if x not in remove_blocked_by]
-    self._save(task)
+update(
+  taskId: number,
+  options: {
+    status?: TaskStatus;
+    addBlockedBy?: number[];
+    removeBlockedBy?: number[];
+  } = {},
+) {
+  const task = this.load(taskId);
+
+  if (options.status) {
+    task.status = options.status;
+    if (options.status === "completed") {
+      this.clearDependency(taskId);
+    }
+  }
+
+  if (options.addBlockedBy?.length) {
+    task.blockedBy = [...new Set([...task.blockedBy, ...options.addBlockedBy])];
+  }
+
+  if (options.removeBlockedBy?.length) {
+    task.blockedBy = task.blockedBy.filter(
+      (id) => !options.removeBlockedBy?.includes(id),
+    );
+  }
+
+  this.save(task);
+}
 ```
 
 4. 4つのタスクツールをディスパッチマップに追加する。
 
 ```ts
-TOOL_HANDLERS = {
-    # ...base tools...
-    "task_create": lambda **kw: TASKS.create(kw["subject"]),
-    "task_update": lambda **kw: TASKS.update(kw["task_id"], kw.get("status")),
-    "task_list":   lambda **kw: TASKS.list_all(),
-    "task_get":    lambda **kw: TASKS.get(kw["task_id"]),
-}
+const TOOL_HANDLERS = {
+  ...BASE_TOOL_HANDLERS,
+  task_create: ({ subject }: { subject: string }) => TASKS.create(subject),
+  task_update: ({ task_id, ...options }: TaskUpdateInput) =>
+    TASKS.update(task_id, normalizeTaskUpdate(options)),
+  task_list: () => TASKS.listAll(),
+  task_get: ({ task_id }: { task_id: number }) => TASKS.get(task_id),
+};
 ```
 
 s07以降、タスクグラフがマルチステップ作業のデフォルト。s03のTodoは軽量な単一セッション用チェックリストとして残る。

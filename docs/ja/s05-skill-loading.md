@@ -48,40 +48,43 @@ skills/
 2. SkillLoaderが `SKILL.md` を再帰的に探索し、ディレクトリ名をスキル識別子として使用する。
 
 ```ts
-class SkillLoader:
-    def __init__(self, skills_dir: Path):
-        self.skills = {}
-        for f in sorted(skills_dir.rglob("SKILL.md")):
-            text = f.read_text()
-            meta, body = self._parse_frontmatter(text)
-            name = meta.get("name", f.parent.name)
-            self.skills[name] = {"meta": meta, "body": body}
+class SkillLoader {
+  private skills = new Map<string, { meta: SkillMeta; body: string }>();
 
-    def get_descriptions(self) -> str:
-        lines = []
-        for name, skill in self.skills.items():
-            desc = skill["meta"].get("description", "")
-            lines.append(f"  - {name}: {desc}")
-        return "\n".join(lines)
+  constructor(private readonly skillsDir: string) {
+    for (const file of findSkillFiles(skillsDir)) {
+      const text = fs.readFileSync(file, "utf8");
+      const { meta, body } = parseFrontmatter(text);
+      const name = meta.name ?? path.basename(path.dirname(file));
+      this.skills.set(name, { meta, body });
+    }
+  }
 
-    def get_content(self, name: str) -> str:
-        skill = self.skills.get(name)
-        if not skill:
-            return f"Error: Unknown skill '{name}'."
-        return f"<skill name=\"{name}\">\n{skill['body']}\n</skill>"
+  getDescriptions(): string {
+    return [...this.skills.entries()]
+      .map(([name, skill]) => `  - ${name}: ${skill.meta.description ?? ""}`)
+      .join("\n");
+  }
+
+  getContent(name: string): string {
+    const skill = this.skills.get(name);
+    if (!skill) return `Error: Unknown skill "${name}".`;
+    return `<skill name="${name}">\n${skill.body}\n</skill>`;
+  }
+}
 ```
 
 3. 第1層はシステムプロンプトに配置。第2層は通常のツールハンドラ。
 
 ```ts
-SYSTEM = f"""You are a coding agent at {WORKDIR}.
+const SYSTEM = `You are a coding agent at ${WORKDIR}.
 Skills available:
-{SKILL_LOADER.get_descriptions()}"""
+${SKILL_LOADER.getDescriptions()}`;
 
-TOOL_HANDLERS = {
-    # ...base tools...
-    "load_skill": lambda **kw: SKILL_LOADER.get_content(kw["name"]),
-}
+const TOOL_HANDLERS = {
+  ...BASE_TOOL_HANDLERS,
+  load_skill: ({ name }: { name: string }) => SKILL_LOADER.getContent(name),
+};
 ```
 
 モデルはどのスキルが存在するかを知り(低コスト)、関連する時にだけ読み込む(高コスト)。

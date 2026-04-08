@@ -191,28 +191,36 @@ Claude Code = 一つの agent loop
 ## コアパターン
 
 ```ts
-def agent_loop(messages):
-    while True:
-        response = client.messages.create(
-            model=MODEL, system=SYSTEM,
-            messages=messages, tools=TOOLS,
-        )
-        messages.append({"role": "assistant",
-                         "content": response.content})
+async function agentLoop(messages: Message[]) {
+  while (true) {
+    const response = await client.messages.create({
+      model: MODEL,
+      system: SYSTEM,
+      messages,
+      tools: TOOLS,
+      max_tokens: 8000,
+    });
 
-        if response.stop_reason != "tool_use":
-            return
+    messages.push({ role: "assistant", content: response.content });
 
-        results = []
-        for block in response.content:
-            if block.type == "tool_use":
-                output = TOOL_HANDLERS[block.name](**block.input)
-                results.append({
-                    "type": "tool_result",
-                    "tool_use_id": block.id,
-                    "content": output,
-                })
-        messages.append({"role": "user", "content": results})
+    if (response.stop_reason !== "tool_use") {
+      return;
+    }
+
+    const results = [];
+    for (const block of response.content) {
+      if (block.type !== "tool_use") continue;
+      const output = await TOOL_HANDLERS[block.name](block.input);
+      results.push({
+        type: "tool_result",
+        tool_use_id: block.id,
+        content: output,
+      });
+    }
+
+    messages.push({ role: "user", content: results });
+  }
+}
 ```
 
 各セッションはこのループの上に 1 つの Harness メカニズムを重ねる -- ループ自体は変わらない。ループは Agent のもの。メカニズムは Harness のもの。

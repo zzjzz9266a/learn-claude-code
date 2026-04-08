@@ -30,66 +30,83 @@
 1. ユーザーのプロンプトが最初のメッセージになる。
 
 ```ts
-messages.append({"role": "user", "content": query})
+const messages: MessageParam[] = [{ role: "user", content: query }];
 ```
 
 2. メッセージとツール定義をLLMに送信する。
 
 ```ts
-response = client.messages.create(
-    model=MODEL, system=SYSTEM, messages=messages,
-    tools=TOOLS, max_tokens=8000,
-)
+const response = await client.messages.create({
+  model: MODEL,
+  system: SYSTEM,
+  messages,
+  tools: TOOLS,
+  max_tokens: 8_000,
+});
 ```
 
 3. アシスタントのレスポンスを追加し、`stop_reason`を確認する。ツールが呼ばれなければ終了。
 
 ```ts
-messages.append({"role": "assistant", "content": response.content})
-if response.stop_reason != "tool_use":
-    return
+messages.push({ role: "assistant", content: response.content });
+if (response.stop_reason !== "tool_use") {
+  return extractText(response.content);
+}
 ```
 
 4. 各ツール呼び出しを実行し、結果を収集してuserメッセージとして追加。ステップ2に戻る。
 
 ```ts
-results = []
-for block in response.content:
-    if block.type == "tool_use":
-        output = run_bash(block.input["command"])
-        results.append({
-            "type": "tool_result",
-            "tool_use_id": block.id,
-            "content": output,
-        })
-messages.append({"role": "user", "content": results})
+const results: ToolResultBlockParam[] = [];
+
+for (const block of response.content) {
+  if (block.type !== "tool_use" || block.name !== "bash") continue;
+  const output = await runBash(String(block.input.command ?? ""));
+  results.push({
+    type: "tool_result",
+    tool_use_id: block.id,
+    content: output,
+  });
+}
+
+messages.push({ role: "user", content: results });
 ```
 
 1つの関数にまとめると:
 
 ```ts
-def agent_loop(query):
-    messages = [{"role": "user", "content": query}]
-    while True:
-        response = client.messages.create(
-            model=MODEL, system=SYSTEM, messages=messages,
-            tools=TOOLS, max_tokens=8000,
-        )
-        messages.append({"role": "assistant", "content": response.content})
+async function agentLoop(query: string): Promise<string> {
+  const messages: MessageParam[] = [{ role: "user", content: query }];
 
-        if response.stop_reason != "tool_use":
-            return
+  while (true) {
+    const response = await client.messages.create({
+      model: MODEL,
+      system: SYSTEM,
+      messages,
+      tools: TOOLS,
+      max_tokens: 8_000,
+    });
 
-        results = []
-        for block in response.content:
-            if block.type == "tool_use":
-                output = run_bash(block.input["command"])
-                results.append({
-                    "type": "tool_result",
-                    "tool_use_id": block.id,
-                    "content": output,
-                })
-        messages.append({"role": "user", "content": results})
+    messages.push({ role: "assistant", content: response.content });
+
+    if (response.stop_reason !== "tool_use") {
+      return extractText(response.content);
+    }
+
+    const results: ToolResultBlockParam[] = [];
+    for (const block of response.content) {
+      if (block.type !== "tool_use" || block.name !== "bash") continue;
+      const output = await runBash(String(block.input.command ?? ""));
+      results.push({
+        type: "tool_result",
+        tool_use_id: block.id,
+        content: output,
+      });
+    }
+
+    messages.push({ role: "user", content: results });
+  }
+}
 ```
 
 これでエージェント全体が30行未満に収まる。本コースの残りはすべてこのループの上に積み重なる -- ループ自体は変わらない。
@@ -98,7 +115,7 @@ def agent_loop(query):
 
 | Component     | Before     | After                          |
 |---------------|------------|--------------------------------|
-| Agent loop    | (none)     | `while True` + stop_reason     |
+| Agent loop    | (none)     | `while (true)` + stop_reason   |
 | Tools         | (none)     | `bash` (one tool)              |
 | Messages      | (none)     | Accumulating list              |
 | Control flow  | (none)     | `stop_reason != "tool_use"`    |

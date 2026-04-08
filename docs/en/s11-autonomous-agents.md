@@ -50,71 +50,67 @@ Identity re-injection after compression:
 1. The teammate loop has two phases: WORK and IDLE. When the LLM stops calling tools (or calls `idle`), the teammate enters IDLE.
 
 ```ts
-def _loop(self, name, role, prompt):
-    while True:
-        # -- WORK PHASE --
-        messages = [{"role": "user", "content": prompt}]
-        for _ in range(50):
-            response = client.messages.create(...)
-            if response.stop_reason != "tool_use":
-                break
-            # execute tools...
-            if idle_requested:
-                break
-
-        # -- IDLE PHASE --
-        self._set_status(name, "idle")
-        resume = self._idle_poll(name, messages)
-        if not resume:
-            self._set_status(name, "shutdown")
-            return
-        self._set_status(name, "working")
+while (true) {
+  // WORK phase
+  const response = await client.messages.create({ /* ... */ });
+  if (response.stop_reason !== "tool_use" || idleRequested) {
+    teammate.status = "idle";
+    const resume = await idlePoll(name, messages);
+    if (!resume) {
+      teammate.status = "shutdown";
+      return;
+    }
+    teammate.status = "working";
+  }
+}
 ```
 
 2. The idle phase polls inbox and task board in a loop.
 
 ```ts
-def _idle_poll(self, name, messages):
-    for _ in range(IDLE_TIMEOUT // POLL_INTERVAL):  # 60s / 5s = 12
-        time.sleep(POLL_INTERVAL)
-        inbox = BUS.read_inbox(name)
-        if inbox:
-            messages.append({"role": "user",
-                "content": f"<inbox>{inbox}</inbox>"})
-            return True
-        unclaimed = scan_unclaimed_tasks()
-        if unclaimed:
-            claim_task(unclaimed[0]["id"], name)
-            messages.append({"role": "user",
-                "content": f"<auto-claimed>Task #{unclaimed[0]['id']}: "
-                           f"{unclaimed[0]['subject']}</auto-claimed>"})
-            return True
-    return False  # timeout -> shutdown
+async function idlePoll(name: string, messages: Message[]) {
+  for (let i = 0; i < IDLE_TIMEOUT / POLL_INTERVAL; i += 1) {
+    await sleep(POLL_INTERVAL * 1000);
+    const inbox = bus.readInbox(name);
+    if (inbox.length > 0) {
+      messages.push({ role: "user", content: `<inbox>${JSON.stringify(inbox)}</inbox>` });
+      return true;
+    }
+    const task = findUnclaimedTask();
+    if (task) {
+      tasks.claim(task.id, name);
+      messages.push({ role: "user", content: `<auto-claimed>Task #${task.id}: ${task.subject}</auto-claimed>` });
+      return true;
+    }
+  }
+  return false;
+}
 ```
 
 3. Task board scanning: find pending, unowned, unblocked tasks.
 
 ```ts
-def scan_unclaimed_tasks() -> list:
-    unclaimed = []
-    for f in sorted(TASKS_DIR.glob("task_*.json")):
-        task = json.loads(f.read_text())
-        if (task.get("status") == "pending"
-                and not task.get("owner")
-                and not task.get("blockedBy")):
-            unclaimed.append(task)
-    return unclaimed
+function findUnclaimedTask() {
+  return readdirSync(TASKS_DIR)
+    .filter((name) => /^task_\d+\.json$/.test(name))
+    .map((name) => JSON.parse(readFileSync(join(TASKS_DIR, name), "utf8")))
+    .find((task) => task.status === "pending" && !task.owner && !(task.blockedBy?.length));
+}
 ```
 
 4. Identity re-injection: when context is too short (compression happened), insert an identity block.
 
 ```ts
-if len(messages) <= 3:
-    messages.insert(0, {"role": "user",
-        "content": f"<identity>You are '{name}', role: {role}, "
-                   f"team: {team_name}. Continue your work.</identity>"})
-    messages.insert(1, {"role": "assistant",
-        "content": f"I am {name}. Continuing."})
+if (messages.length <= 3) {
+  messages.unshift({
+    role: "user",
+    content: `<identity>You are '${name}', role: ${role}, team: ${teamName}.</identity>`,
+  });
+  messages.splice(1, 0, {
+    role: "assistant",
+    content: `I am ${name}. Continuing.`,
+  });
+}
 ```
 
 ## What Changed From s10

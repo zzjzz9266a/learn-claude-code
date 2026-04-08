@@ -37,40 +37,46 @@ On multi-step tasks, the model loses track. It repeats work, skips steps, or wan
 1. TodoManager stores items with statuses. Only one item can be `in_progress` at a time.
 
 ```ts
-class TodoManager:
-    def update(self, items: list) -> str:
-        validated, in_progress_count = [], 0
-        for item in items:
-            status = item.get("status", "pending")
-            if status == "in_progress":
-                in_progress_count += 1
-            validated.append({"id": item["id"], "text": item["text"],
-                              "status": status})
-        if in_progress_count > 1:
-            raise ValueError("Only one task can be in_progress")
-        self.items = validated
-        return self.render()
+class TodoManager {
+  items: Array<{ content: string; status: string; activeForm: string }> = [];
+
+  update(items: Array<{ content?: string; status?: string; activeForm?: string }>) {
+    let inProgress = 0;
+    const normalized = items.map((item, index) => {
+      const content = String(item.content ?? "").trim();
+      const status = String(item.status ?? "pending").toLowerCase();
+      const activeForm = String(item.activeForm ?? "").trim();
+      if (!content) throw new Error(`Item ${index}: content required`);
+      if (status === "in_progress") inProgress += 1;
+      return { content, status, activeForm };
+    });
+
+    if (inProgress > 1) throw new Error("Only one in_progress allowed");
+    this.items = normalized;
+    return this.render();
+  }
+}
 ```
 
 2. The `todo` tool goes into the dispatch map like any other tool.
 
 ```ts
-TOOL_HANDLERS = {
-    # ...base tools...
-    "todo": lambda **kw: TODO.update(kw["items"]),
-}
+const handlers = {
+  // ...base tools...
+  todo: ({ items }: { items: unknown[] }) => todo.update(items as any[]),
+};
 ```
 
 3. A nag reminder injects a nudge if the model goes 3+ rounds without calling `todo`.
 
 ```ts
-if rounds_since_todo >= 3 and messages:
-    last = messages[-1]
-    if last["role"] == "user" and isinstance(last.get("content"), list):
-        last["content"].insert(0, {
-            "type": "text",
-            "text": "<reminder>Update your todos.</reminder>",
-        })
+roundsWithoutTodo = usedTodo ? 0 : roundsWithoutTodo + 1;
+if (todo.hasOpenItems() && roundsWithoutTodo >= 3) {
+  results.push({
+    type: "text",
+    text: "<reminder>Update your todos.</reminder>",
+  });
+}
 ```
 
 The "one in_progress at a time" constraint forces sequential focus. The nag reminder creates accountability.
@@ -81,7 +87,7 @@ The "one in_progress at a time" constraint forces sequential focus. The nag remi
 |----------------|------------------|----------------------------|
 | Tools          | 4                | 5 (+todo)                  |
 | Planning       | None             | TodoManager with statuses  |
-| Nag injection  | None             | `<reminder>` after 3 rounds|
+| Nag injection  | None             | `<reminder>` after 3 rounds |
 | Agent loop     | Simple dispatch  | + rounds_since_todo counter|
 
 ## Try It

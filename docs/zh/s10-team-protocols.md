@@ -45,39 +45,48 @@ Trackers:
 1. 领导生成 request_id, 通过收件箱发起关机请求。
 
 ```ts
-shutdown_requests = {}
+const shutdownRequests = new Map<string, { target: string; status: RequestStatus }>();
 
-def handle_shutdown_request(teammate: str) -> str:
-    req_id = str(uuid.uuid4())[:8]
-    shutdown_requests[req_id] = {"target": teammate, "status": "pending"}
-    BUS.send("lead", teammate, "Please shut down gracefully.",
-             "shutdown_request", {"request_id": req_id})
-    return f"Shutdown request {req_id} sent (status: pending)"
+function handleShutdownRequest(teammate: string): string {
+  const requestId = crypto.randomUUID().slice(0, 8);
+  shutdownRequests.set(requestId, { target: teammate, status: "pending" });
+  BUS.send("lead", teammate, "Please shut down gracefully.", "shutdown_request", {
+    request_id: requestId,
+  });
+  return `Shutdown request ${requestId} sent (status: pending)`;
+}
 ```
 
 2. 队友收到请求后, 用 approve/reject 响应。
 
 ```ts
-if tool_name == "shutdown_response":
-    req_id = args["request_id"]
-    approve = args["approve"]
-    shutdown_requests[req_id]["status"] = "approved" if approve else "rejected"
-    BUS.send(sender, "lead", args.get("reason", ""),
-             "shutdown_response",
-             {"request_id": req_id, "approve": approve})
+if (toolName === "shutdown_response") {
+  const requestId = String(args.request_id);
+  const approve = Boolean(args.approve);
+  shutdownRequests.get(requestId)!.status = approve ? "approved" : "rejected";
+  BUS.send(sender, "lead", String(args.reason ?? ""), "shutdown_response", {
+    request_id: requestId,
+    approve,
+  });
+}
 ```
 
 3. 计划审批遵循完全相同的模式。队友提交计划 (生成 request_id), 领导审查 (引用同一个 request_id)。
 
 ```ts
-plan_requests = {}
+const planRequests = new Map<
+  string,
+  { from: string; plan: string; status: RequestStatus }
+>();
 
-def handle_plan_review(request_id, approve, feedback=""):
-    req = plan_requests[request_id]
-    req["status"] = "approved" if approve else "rejected"
-    BUS.send("lead", req["from"], feedback,
-             "plan_approval_response",
-             {"request_id": request_id, "approve": approve})
+function handlePlanReview(requestId: string, approve: boolean, feedback = "") {
+  const request = planRequests.get(requestId)!;
+  request.status = approve ? "approved" : "rejected";
+  BUS.send("lead", request.from, feedback, "plan_approval_response", {
+    request_id: requestId,
+    approve,
+  });
+}
 ```
 
 一个 FSM, 两种用途。同样的 `pending -> approved | rejected` 状态机可以套用到任何请求-响应协议上。

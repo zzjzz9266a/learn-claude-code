@@ -2,7 +2,7 @@
 
 `s01 > s02 > s03 > s04 > s05 > s06 | s07 > [ s08 ] s09 > s10 > s11 > s12`
 
-> *"Run slow operations in the background; the agent keeps thinking"* -- daemon threads run commands, inject notifications on completion.
+> *"Run slow operations in the background; the agent keeps thinking"* -- background tasks run commands, inject notifications on completion.
 >
 > **Harness layer**: Background execution -- the model thinks while the harness waits.
 
@@ -32,56 +32,58 @@ Agent --[spawn A]--[spawn B]--[other work]----
 
 ## How It Works
 
-1. BackgroundManager tracks tasks with a thread-safe notification queue.
+1. BackgroundManager tracks tasks in a map and stores completed notifications for later injection.
 
 ```ts
-class BackgroundManager:
-    def __init__(self):
-        self.tasks = {}
-        self._notification_queue = []
-        self._lock = threading.Lock()
+class BackgroundManager {
+  tasks = new Map<string, { status: string; command: string; result: string | null }>();
+  notifications: Array<{ task_id: string; status: string; result: string }> = [];
+}
 ```
 
-2. `run()` starts a daemon thread and returns immediately.
+2. `run()` creates a task record, starts the command asynchronously, and returns immediately.
 
 ```ts
-def run(self, command: str) -> str:
-    task_id = str(uuid.uuid4())[:8]
-    self.tasks[task_id] = {"status": "running", "command": command}
-    thread = threading.Thread(
-        target=self._execute, args=(task_id, command), daemon=True)
-    thread.start()
-    return f"Background task {task_id} started"
+run(command: string, timeout = 120) {
+  const taskId = randomUUID().slice(0, 8);
+  this.tasks.set(taskId, { status: "running", command, result: null });
+  void runCommand(command, WORKDIR, timeout * 1000).then((result) => {
+    const status = result.startsWith("Error:") ? "error" : "completed";
+    this.tasks.set(taskId, { status, command, result });
+    this.notifications.push({ task_id: taskId, status, result: result.slice(0, 500) });
+  });
+  return `Background task ${taskId} started: ${command.slice(0, 80)}`;
+}
 ```
 
-3. When the subprocess finishes, its result goes into the notification queue.
+3. When the command finishes, its result goes into the notification list.
 
 ```ts
-def _execute(self, task_id, command):
-    try:
-        r = subprocess.run(command, shell=True, cwd=WORKDIR,
-            capture_output=True, text=True, timeout=300)
-        output = (r.stdout + r.stderr).strip()[:50000]
-    except subprocess.TimeoutExpired:
-        output = "Error: Timeout (300s)"
-    with self._lock:
-        self._notification_queue.append({
-            "task_id": task_id, "result": output[:500]})
+this.notifications.push({
+  task_id: taskId,
+  status,
+  result: result.slice(0, 500),
+});
 ```
 
 4. The agent loop drains notifications before each LLM call.
 
 ```ts
-def agent_loop(messages: list):
-    while True:
-        notifs = BG.drain_notifications()
-        if notifs:
-            notif_text = "\n".join(
-                f"[bg:{n['task_id']}] {n['result']}" for n in notifs)
-            messages.append({"role": "user",
-                "content": f"<background-results>\n{notif_text}\n"
-                           f"</background-results>"})
-        response = client.messages.create(...)
+async function agentLoop(messages: Message[]) {
+  while (true) {
+    const notifs = background.drain();
+    if (notifs.length > 0) {
+      const notifText = notifs
+        .map((item) => `[bg:${item.task_id}] ${item.status}: ${item.result}`)
+        .join("\n");
+      messages.push({
+        role: "user",
+        content: `<background-results>\n${notifText}\n</background-results>`,
+      });
+    }
+    const response = await client.messages.create({ /* ... */ });
+  }
+}
 ```
 
 The loop stays single-threaded. Only subprocess I/O is parallelized.
@@ -91,9 +93,9 @@ The loop stays single-threaded. Only subprocess I/O is parallelized.
 | Component      | Before (s07)     | After (s08)                |
 |----------------|------------------|----------------------------|
 | Tools          | 8                | 6 (base + background_run + check)|
-| Execution      | Blocking only    | Blocking + background threads|
-| Notification   | None             | Queue drained per loop     |
-| Concurrency    | None             | Daemon threads             |
+| Execution      | Blocking only    | Blocking + background tasks |
+| Notification   | None             | Notification list drained per loop |
+| Concurrency    | None             | Async command completion    |
 
 ## Try It
 

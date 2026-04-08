@@ -45,39 +45,37 @@ Trackers:
 1. The lead initiates shutdown by generating a request_id and sending through the inbox.
 
 ```ts
-shutdown_requests = {}
+const shutdownRequests = new Map<string, { target: string; status: string }>();
 
-def handle_shutdown_request(teammate: str) -> str:
-    req_id = str(uuid.uuid4())[:8]
-    shutdown_requests[req_id] = {"target": teammate, "status": "pending"}
-    BUS.send("lead", teammate, "Please shut down gracefully.",
-             "shutdown_request", {"request_id": req_id})
-    return f"Shutdown request {req_id} sent (status: pending)"
+function handleShutdownRequest(teammate: string) {
+  const requestId = randomUUID().slice(0, 8);
+  shutdownRequests.set(requestId, { target: teammate, status: "pending" });
+  bus.send("lead", teammate, "Please shut down gracefully.", "shutdown_request");
+  return `Shutdown request ${requestId} sent (status: pending)`;
+}
 ```
 
 2. The teammate receives the request and responds with approve/reject.
 
 ```ts
-if tool_name == "shutdown_response":
-    req_id = args["request_id"]
-    approve = args["approve"]
-    shutdown_requests[req_id]["status"] = "approved" if approve else "rejected"
-    BUS.send(sender, "lead", args.get("reason", ""),
-             "shutdown_response",
-             {"request_id": req_id, "approve": approve})
+shutdownRequests.set(requestId, {
+  target: teammate,
+  status: approve ? "approved" : "rejected",
+});
+bus.send(sender, "lead", reason, "shutdown_response");
 ```
 
 3. Plan approval follows the identical pattern. The teammate submits a plan (generating a request_id), the lead reviews (referencing the same request_id).
 
 ```ts
-plan_requests = {}
+const planRequests = new Map<string, { from: string; status: string }>();
 
-def handle_plan_review(request_id, approve, feedback=""):
-    req = plan_requests[request_id]
-    req["status"] = "approved" if approve else "rejected"
-    BUS.send("lead", req["from"], feedback,
-             "plan_approval_response",
-             {"request_id": request_id, "approve": approve})
+function handlePlanReview(requestId: string, approve: boolean, feedback = "") {
+  const request = planRequests.get(requestId);
+  if (!request) return `Error: Unknown request '${requestId}'`;
+  request.status = approve ? "approved" : "rejected";
+  bus.send("lead", request.from, feedback, "plan_approval_response");
+}
 ```
 
 One FSM, two applications. The same `pending -> approved | rejected` state machine handles any request-response protocol.
@@ -90,7 +88,7 @@ One FSM, two applications. The same `pending -> approved | rejected` state machi
 | Shutdown       | Natural exit only| Request-response handshake   |
 | Plan gating    | None             | Submit/review with approval  |
 | Correlation    | None             | request_id per request       |
-| FSM            | None             | pending -> approved/rejected |
+| FSM            | None             | `pending -> approved/rejected` |
 
 ## Try It
 

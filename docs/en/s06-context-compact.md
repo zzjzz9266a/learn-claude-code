@@ -47,41 +47,46 @@ continue    [Layer 2: auto_compact]
 1. **Layer 1 -- micro_compact**: Before each LLM call, replace old tool results with placeholders.
 
 ```ts
-def micro_compact(messages: list) -> list:
-    tool_results = []
-    for i, msg in enumerate(messages):
-        if msg["role"] == "user" and isinstance(msg.get("content"), list):
-            for j, part in enumerate(msg["content"]):
-                if isinstance(part, dict) and part.get("type") == "tool_result":
-                    tool_results.append((i, j, part))
-    if len(tool_results) <= KEEP_RECENT:
-        return messages
-    for _, _, part in tool_results[:-KEEP_RECENT]:
-        if len(part.get("content", "")) > 100:
-            part["content"] = f"[Previous: used {tool_name}]"
-    return messages
+function microcompact(messages: Message[]) {
+  const toolResults: Array<{ content?: unknown }> = [];
+  for (const message of messages) {
+    if (message.role !== "user" || !Array.isArray(message.content)) continue;
+    for (const part of message.content) {
+      if (typeof part === "object" && part !== null && (part as any).type === "tool_result") {
+        toolResults.push(part as any);
+      }
+    }
+  }
+
+  for (const part of toolResults.slice(0, -3)) {
+    if (typeof part.content === "string" && part.content.length > 100) {
+      part.content = "[cleared]";
+    }
+  }
+}
 ```
 
 2. **Layer 2 -- auto_compact**: When tokens exceed threshold, save full transcript to disk, then ask the LLM to summarize.
 
 ```ts
-def auto_compact(messages: list) -> list:
-    # Save transcript for recovery
-    transcript_path = TRANSCRIPT_DIR / f"transcript_{int(time.time())}.jsonl"
-    with open(transcript_path, "w") as f:
-        for msg in messages:
-            f.write(json.dumps(msg, default=str) + "\n")
-    # LLM summarizes
-    response = client.messages.create(
-        model=MODEL,
-        messages=[{"role": "user", "content":
-            "Summarize this conversation for continuity..."
-            + json.dumps(messages, default=str)[:80000]}],
-        max_tokens=2000,
-    )
-    return [
-        {"role": "user", "content": f"[Compressed]\n\n{response.content[0].text}"},
-    ]
+async function autoCompact(messages: Message[]) {
+  const transcriptPath = join(TRANSCRIPT_DIR, `transcript_${Date.now()}.jsonl`);
+  writeFileSync(transcriptPath, messages.map((message) => JSON.stringify(message)).join("\n"));
+
+  const response = await client.messages.create({
+    model: MODEL,
+    messages: [{
+      role: "user",
+      content: `Summarize for continuity:\n${JSON.stringify(messages).slice(-80_000)}`,
+    }],
+    max_tokens: 2000,
+  });
+
+  return [{
+    role: "user",
+    content: `[Compressed. Transcript: ${transcriptPath}]\n${extractText(response.content)}`,
+  }];
+}
 ```
 
 3. **Layer 3 -- manual compact**: The `compact` tool triggers the same summarization on demand.
@@ -89,15 +94,19 @@ def auto_compact(messages: list) -> list:
 4. The loop integrates all three:
 
 ```ts
-def agent_loop(messages: list):
-    while True:
-        micro_compact(messages)                        # Layer 1
-        if estimate_tokens(messages) > THRESHOLD:
-            messages[:] = auto_compact(messages)       # Layer 2
-        response = client.messages.create(...)
-        # ... tool execution ...
-        if manual_compact:
-            messages[:] = auto_compact(messages)       # Layer 3
+async function agentLoop(messages: Message[]) {
+  while (true) {
+    microcompact(messages);                            // Layer 1
+    if (estimateTokens(messages) > TOKEN_THRESHOLD) {
+      messages.splice(0, messages.length, ...(await autoCompact(messages))); // Layer 2
+    }
+    const response = await client.messages.create({ /* ... */ });
+    // ... tool execution ...
+    if (manualCompact) {
+      messages.splice(0, messages.length, ...(await autoCompact(messages))); // Layer 3
+    }
+  }
+}
 ```
 
 Transcripts preserve full history on disk. Nothing is truly lost -- just moved out of active context.
