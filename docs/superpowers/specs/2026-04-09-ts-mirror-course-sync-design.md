@@ -9,7 +9,7 @@ Success means:
 - The chapter map, numbering, ordering, bridge docs, navigation, and generated web content match upstream's current teaching structure.
 - The repository and website do not retain or display Python source.
 - Existing TypeScript runnable chapters continue to work.
-- Later chapters that do not yet have TypeScript implementations are represented as TypeScript-only placeholders rather than Python fallbacks.
+- Every upstream chapter exposed in the mirrored course has a corresponding TypeScript implementation in this repository.
 
 ## Non-Goals
 
@@ -23,22 +23,26 @@ Success means:
 - No page should render Python code snippets from generated data.
 - The site must keep building as a static export.
 - The existing `s01` through `s12` TypeScript runnable flow must remain valid.
+- No `planned` or placeholder chapter state is allowed for mirrored upstream sessions.
+- If upstream changes the semantics or key mechanism of an existing chapter, the mirror must update the matching TS implementation in the same synchronization effort.
 
 ## Recommended Approach
 
-### Option A: Strict TS-Only Data Pipeline
+### Option A: Strict TS-Only Mirror with Immediate TS Translation
 
-Regenerate all teaching metadata from TypeScript source plus markdown docs only. For chapters without TS source, emit structured "implementation pending" records.
+Regenerate all teaching metadata from TypeScript source plus markdown docs only. When upstream adds or changes a Python-backed chapter, read that Python chapter as reference input and translate it into a TS implementation before considering the sync complete.
 
 Pros:
 
 - Cleanest long-term architecture.
 - Eliminates Python leakage at the source.
 - Keeps web components honest about what exists.
+- Matches the repository's role as a real TS mirror rather than a documentation shell.
 
 Cons:
 
 - Requires changes to the extraction pipeline and some viewer assumptions.
+- Requires larger sync effort whenever upstream adds or reshapes chapters.
 
 ### Option B: Hybrid Generated Data with Post-Filter
 
@@ -53,10 +57,11 @@ Cons:
 - Fragile.
 - Easy to leak Python into new pages or metadata.
 - Creates persistent mismatch between data truth and UI truth.
+- Breaks the requirement that upstream chapters must have real TS implementations instead of placeholders.
 
 ### Option C: Hardcoded Mirror Metadata
 
-Manually maintain chapter metadata, page structure, and placeholder states in static TS files, independent of extraction.
+Manually maintain chapter metadata, page structure, and sync status in static TS files, independent of extraction.
 
 Pros:
 
@@ -89,49 +94,53 @@ The web app exposes the same teaching structure as upstream:
 The repository and site operate under these rules:
 
 - If a chapter has a TS implementation, source viewer uses that TS file.
-- If a chapter does not yet have a TS implementation, the site shows a TS-only placeholder state.
 - No viewer, diff page, generated JSON payload, or page component should expose Python source text or Python filenames.
+- Python may be read during sync work as a migration reference, but it must not remain in the repository or website output.
 
 ### 3. Chapter Status Model
 
-Each chapter should resolve to one of:
+Each mirrored upstream session chapter must be `implemented`, backed by a real TS source file.
 
-- `implemented`: backed by a real TS source file
-- `planned`: chapter exists in docs/site structure but TS source is not implemented yet
+Bridge docs and reference docs may exist without runnable code, but session chapters `s01` through `s19` may not be represented by placeholders.
 
-The site should render both states cleanly, but only `implemented` chapters get real source/diff content.
+### 4. Governance Rules
+
+This mirror should formalize permanent sync rules in two places:
+
+- root `AGENTS.md` for hard operational rules
+- a detailed sync strategy document under `docs/` for audit flow, priorities, and acceptance criteria
+
+These governance docs should make the sync contract stable so future updates do not require renegotiating the mirror policy.
 
 ## Architecture Changes
 
 ### A. Generated Metadata Contract
 
-The generated version index should stop assuming "every visible chapter has a concrete source file."
+The generated version index should assume every visible session chapter has a TS source file.
 
-It should instead support:
+It should support:
 
 - chapter identity and ordering
 - localized titles/subtitles/key insights
-- chapter status (`implemented` or `planned`)
-- optional source payload
-- optional diff payload only when both adjacent TS sources exist
+- required TS source payload for session chapters
+- diff payload when adjacent TS sources exist
 
-This lets the site mirror upstream structure without inventing fake TS code.
+Bridge/reference docs remain document-only, but session chapter records must not fall back to placeholders.
 
 ### B. Extraction Pipeline
 
 `web/scripts/extract-content.ts` should be refactored into a TS-only extractor that:
 
 - reads all mirrored markdown docs and bridge docs
-- reads implemented TS agent files
-- derives metadata for `s01-s12` from real TS source
-- emits placeholder records for `s13-s19` when source files are absent
+- reads all session TS agent files
+- derives metadata for `s01-s19` from real TS source
 - never scans or serializes Python files
 
 ### C. Web Rendering
 
-The web UI should distinguish between chapter content and chapter implementation state.
+The web UI should assume session source exists for mirrored chapters.
 
-Pages that currently assume source always exists must handle planned chapters explicitly:
+Pages that currently assume only the old 12-session TS set exists must be expanded for the full mirrored TS set:
 
 - version page
 - source viewer
@@ -139,7 +148,7 @@ Pages that currently assume source always exists must handle planned chapters ex
 - compare page
 - timeline and reference surfaces where source-derived details appear
 
-Planned chapters should still be navigable, documented, and localized, but source sections should render a neutral TS-roadmap state instead of broken or fake code blocks.
+The correct fallback for missing TS implementation is not placeholder UI. It is to complete the missing TS implementation before the sync is considered done.
 
 ### D. Repository Layout
 
@@ -155,44 +164,51 @@ The mirror should not keep:
 
 - upstream Python agent source
 
+It should also add governance docs that codify the long-term mirror policy.
+
 ## Implementation Phases
 
-### Phase 1: Remove Python from the mirror surface
+### Phase 1: Codify mirror governance
+
+- Add root `AGENTS.md` with the TS mirror hard rules.
+- Add a detailed sync strategy document under `docs/`.
+- Update the design/spec set so future sync work follows these defaults automatically.
+
+### Phase 2: Remove Python from the mirror surface
 
 - Delete Python agent files added by upstream sync.
 - Ensure no package/test/page imports rely on them.
 - Confirm generated data no longer serializes Python filenames or source blobs.
 
-### Phase 2: Make metadata support planned TS chapters
+### Phase 3: Strictly audit `s01-s12`
 
-- Extend generated version records with chapter implementation status.
-- Represent `s13-s19` as planned TS chapters.
-- Keep `s01-s12` fully source-backed.
+- Compare each existing TS chapter against the latest upstream chapter semantics.
+- Update chapter titles, subtitles, key insights, docs, web metadata, and explanatory UI where they have drifted.
+- Update TS implementation boundaries where the old code would misrepresent the chapter's current teaching mechanism.
 
-### Phase 3: Update page behavior for planned chapters
+### Phase 4: Translate `s13-s19` into TS
 
-- Render docs normally for all chapters.
-- Render source viewer placeholders for planned chapters.
-- Suppress or degrade diff/compare features gracefully where a TS source pair does not exist.
+- Read upstream Python chapter implementations as migration inputs.
+- Create matching TS session implementations for `s13-s19`.
+- Ensure generated data, source viewer, compare, and diff all use TS outputs only.
 
-### Phase 4: Align navigation and labels with upstream
+### Phase 5: Align navigation and labels with upstream
 
 - Keep route structure, timeline, layers, reference pages, and doc taxonomy aligned with upstream.
 - Ensure locale strings cover the expanded course map.
 
-### Phase 5: Future TS implementation expansion
+### Phase 6: Continuous sync policy
 
-- Add real TS implementations for `s13-s19`.
-- Promote each chapter from `planned` to `implemented` as code lands.
+- Future upstream session changes should trigger chapter-level TS implementation updates in the same sync task.
+- Existing mirrored TS chapters should be re-audited when upstream semantics change.
 
 ## Testing Strategy
 
 Add or update tests for:
 
-- extractor output shape with implemented and planned chapters
+- extractor output shape for the full TS chapter set
 - generated metadata containing no `.py` filenames
-- source viewer planned-state rendering
-- diff/compare behavior when source is unavailable
+- source viewer and compare behavior for all mirrored TS chapters
 - docs/navigation smoke coverage for `s00-s19`
 - static build success
 
@@ -202,25 +218,32 @@ Add or update tests for:
 
 Mitigation:
 
-- Make chapter status explicit instead of pretending parity in source coverage.
+- Treat each upstream chapter sync as incomplete until the corresponding TS chapter is updated.
 
 ### Risk 2: Components still assume source exists everywhere
 
 Mitigation:
 
-- Add one shared source-availability helper and route all source-aware UI through it.
+- Expand the source-aware UI to the full TS set and keep the extractor contract strict.
 
 ### Risk 3: Regenerated JSON gets overwritten by old assumptions
 
 Mitigation:
 
-- Move status-aware generation into the extractor itself, not post-processing.
+- Move TS-only generation rules into the extractor itself, not post-processing.
+
+### Risk 4: Existing `s01-s12` drift remains hidden while focusing on new chapters
+
+Mitigation:
+
+- Make `s01-s12` semantic audit an explicit phase before translating `s13-s19`.
 
 ## Acceptance Criteria
 
 - The site exposes upstream-equivalent course/doc structure through `s19`.
 - No Python source files remain in the mirrored repository teaching surface.
 - No generated web payload contains Python filenames or Python source text.
-- `s01-s12` keep real TS source viewing.
-- `s13-s19` render as valid TS-only planned chapters, not missing pages and not Python fallbacks.
+- `s01-s12` are audited and updated where their course semantics drifted from upstream.
+- `s13-s19` exist as real TS session implementations, not missing pages and not placeholders.
+- Root `AGENTS.md` and a detailed sync strategy doc codify the long-term mirror rules.
 - Root tests and static web build pass.
