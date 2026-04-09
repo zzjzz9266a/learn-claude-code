@@ -15,6 +15,13 @@
     "s10": "tsx agents/s10_team_protocols.ts",
     "s11": "tsx agents/s11_autonomous_agents.ts",
     "s12": "tsx agents/s12_worktree_task_isolation.ts",
+    "s13": "tsx agents/s13_background_tasks.ts",
+    "s14": "tsx agents/s14_cron_scheduler.ts",
+    "s15": "tsx agents/s15_agent_teams.ts",
+    "s16": "tsx agents/s16_team_protocols.ts",
+    "s17": "tsx agents/s17_autonomous_agents.ts",
+    "s18": "tsx agents/s18_worktree_task_isolation.ts",
+    "s19": "tsx agents/s19_mcp_plugin.ts",
     "s_full": "tsx agents/s_full.ts",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
