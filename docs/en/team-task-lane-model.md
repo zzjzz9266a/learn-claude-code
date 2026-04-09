@@ -126,7 +126,7 @@ This layer answers:
 
 Example:
 
-```python
+```typescript
 member = {
     "name": "alice",
     "role": "frontend",
@@ -152,7 +152,7 @@ This layer answers:
 
 Example:
 
-```python
+```typescript
 request = {
     "request_id": "a1b2c3d4",
     "kind": "plan_approval",
@@ -181,7 +181,7 @@ It answers:
 
 Example:
 
-```python
+```typescript
 task = {
     "id": 12,
     "subject": "Implement login page",
@@ -213,7 +213,7 @@ These are best understood as:
 
 Example:
 
-```python
+```typescript
 runtime = {
     "id": "rt_01",
     "type": "in_process_teammate",
@@ -239,7 +239,7 @@ This layer answers:
 
 Example:
 
-```python
+```typescript
 worktree = {
     "name": "login-page",
     "path": ".worktrees/login-page",

@@ -79,26 +79,27 @@ Parent agent continues
 
 最小 schema 可以非常简单：
 
-```python
+```typescript
 {
-    "name": "task",
-    "description": "Run a subtask in a clean context and return a summary.",
-    "input_schema": {
-        "type": "object",
-        "properties": {
-            "prompt": {"type": "string"}
+    name: "task",
+    description: "Run a subtask in a clean context and return a summary.",
+    input_schema: {
+        type: "object",
+        properties: {
+            prompt: { type: "string" }
         },
-        "required": ["prompt"]
+        required: ["prompt"]
     }
 }
 ```
 
 ### 第二步：子智能体使用自己的消息列表
 
-```python
-def run_subagent(prompt: str) -> str:
-    sub_messages = [{"role": "user", "content": prompt}]
+```typescript
+async function runSubagent(prompt: string): Promise<string> {
+    const subMessages: any[] = [{ role: "user", content: prompt }];
     ...
+}
 ```
 
 这就是隔离的关键。
@@ -120,24 +121,25 @@ def run_subagent(prompt: str) -> str:
 
 子智能体做完事后，不把全部内部历史写回去，而是返回一段总结。
 
-```python
+```typescript
 return {
-    "type": "tool_result",
-    "tool_use_id": block.id,
-    "content": summary_text,
-}
+    type: "tool_result",
+    tool_use_id: block.id,
+    content: summaryText,
+};
 ```
 
 ## 这一章最关键的数据结构
 
 如果你只记一个结构，就记这个：
 
-```python
-class SubagentContext:
-    messages: list
-    tools: list
-    handlers: dict
-    max_turns: int
+```typescript
+class SubagentContext {
+    messages: any[];
+    tools: any[];
+    handlers: Record<string, Function>;
+    maxTurns: number;
+}
 ```
 
 解释一下：
@@ -225,9 +227,9 @@ class SubagentContext:
 - 不是从空白 `messages` 开始
 - 而是先复制父智能体的已有上下文，再追加子任务 prompt
 
-```python
-sub_messages = list(parent_messages)
-sub_messages.append({"role": "user", "content": prompt})
+```typescript
+const subMessages = [...parentMessages];
+subMessages.push({ role: "user", content: prompt });
 ```
 
 这就是 fork 的本质：

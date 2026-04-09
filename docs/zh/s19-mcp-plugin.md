@@ -176,7 +176,7 @@ mcp__browser__open_tab
 
 ### 第四步：写一个 router
 
-```python
+```typescript
 if tool_name.startswith("mcp__"):
     return mcp_router.call(tool_name, arguments)
 else:
@@ -193,7 +193,7 @@ else:
 
 如果你想把这一层再收得更稳，最好再把结果也标准化回同一条总线：
 
-```python
+```typescript
 {
     "source": "mcp",
     "server": "figma",
@@ -268,7 +268,7 @@ tool_result 回到同一个主循环
 
 ### 1. server 配置
 
-```python
+```typescript
 {
     "command": "npx",
     "args": ["-y", "..."],
@@ -278,7 +278,7 @@ tool_result 回到同一个主循环
 
 ### 2. 标准化后的工具定义
 
-```python
+```typescript
 {
     "name": "mcp__postgres__query",
     "description": "Run a SQL query",
@@ -288,7 +288,7 @@ tool_result 回到同一个主循环
 
 ### 3. client 注册表
 
-```python
+```typescript
 clients = {
     "postgres": mcp_client_instance
 }

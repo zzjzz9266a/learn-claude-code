@@ -99,7 +99,7 @@ Hook がやるのは「観察して補助すること」です。
 
 ### 1. 設定を読む
 
-```python
+```typescript
 hooks = {
     "PreToolUse": [...],
     "PostToolUse": [...],
@@ -109,7 +109,7 @@ hooks = {
 
 ### 2. 実行関数を作る
 
-```python
+```typescript
 def run_hooks(event_name: str, ctx: dict):
     for hook in hooks.get(event_name, []):
         run_one_hook(hook, ctx)
@@ -117,7 +117,7 @@ def run_hooks(event_name: str, ctx: dict):
 
 ### 3. ループに接続する
 
-```python
+```typescript
 run_hooks("PreToolUse", ctx)
 output = handler(**tool_input)
 run_hooks("PostToolUse", ctx)

@@ -108,10 +108,10 @@ tool_result
 
 先准备一份很轻的元信息：
 
-```python
+```typescript
 {
-    "name": "code-review",
-    "description": "Checklist for reviewing code changes",
+    name: "code-review",
+    description: "Checklist for reviewing code changes",
 }
 ```
 
@@ -123,10 +123,10 @@ tool_result
 
 真正被加载时，再读取完整内容：
 
-```python
+```typescript
 {
-    "manifest": {...},
-    "body": "... full skill text ...",
+    manifest: {...},
+    body: "... full skill text ...",
 }
 ```
 
@@ -136,11 +136,11 @@ tool_result
 
 更清楚的方式是做一个统一注册表：
 
-```python
-registry = {
-    "code-review": SkillDocument(...),
-    "git-workflow": SkillDocument(...),
-}
+```typescript
+const registry = new Map<string, SkillDocument>([
+    ["code-review", new SkillDocument(...)],
+    ["git-workflow", new SkillDocument(...)],
+]);
 ```
 
 它至少要能回答两个问题：
@@ -164,23 +164,23 @@ skills/
 
 ### 第二步：从 `SKILL.md` 里读取最小元信息
 
-```python
-class SkillRegistry:
-    def __init__(self, skills_dir):
-        self.skills = {}
-        self._load_all()
+```typescript
+class SkillRegistry {
+    private skills = new Map<string, { meta: any; body: string }>();
 
-    def _load_all(self):
-        for path in skills_dir.rglob("SKILL.md"):
-            meta, body = parse_frontmatter(path.read_text())
-            name = meta.get("name", path.parent.name)
-            self.skills[name] = {
-                "manifest": {
-                    "name": name,
-                    "description": meta.get("description", ""),
-                },
-                "body": body,
-            }
+    constructor(skillsDir: string) {
+        this._loadAll();
+    }
+
+    private _loadAll(): void {
+        for (const path of findSkillFiles(skillsDir)) {
+            const text = fs.readFileSync(path, "utf8");
+            const { meta, body } = parseFrontmatter(text);
+            const name = meta.name ?? path.basename(path.dirname(path));
+            this.skills.set(name, { meta, body });
+        }
+    }
+}
 ```
 
 这里的 `frontmatter` 你可以先简单理解成：
@@ -189,21 +189,20 @@ class SkillRegistry:
 
 ### 第三步：把 skill 目录放进 system prompt
 
-```python
-SYSTEM = f"""You are a coding agent.
+```typescript
+const SYSTEM = `You are a coding agent.
 Skills available:
-{SKILL_REGISTRY.describe_available()}
-"""
+${SKILL_REGISTRY.describeAvailable()}`;
 ```
 
 注意这里放的是**目录信息**，不是完整正文。
 
 ### 第四步：提供一个 `load_skill` 工具
 
-```python
-TOOL_HANDLERS = {
-    "load_skill": lambda **kw: SKILL_REGISTRY.load_full_text(kw["name"]),
-}
+```typescript
+const TOOL_HANDLERS = {
+    load_skill: (kw: any) => SKILL_REGISTRY.loadFullText(kw["name"]),
+};
 ```
 
 当模型调用它时，把完整 skill 正文作为 `tool_result` 返回。

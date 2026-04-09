@@ -51,44 +51,53 @@ skills/
 
 **Step 2.** `SkillLoader` scans for all `SKILL.md` files at startup. It parses the frontmatter to extract names and descriptions, and stores the full body for later retrieval.
 
-```python
-class SkillLoader:
-    def __init__(self, skills_dir: Path):
-        self.skills = {}
-        for f in sorted(skills_dir.rglob("SKILL.md")):
-            text = f.read_text()
-            meta, body = self._parse_frontmatter(text)
-            # Use the frontmatter name, or fall back to the directory name
-            name = meta.get("name", f.parent.name)
-            self.skills[name] = {"meta": meta, "body": body}
+```typescript
+class SkillLoader {
+  private skills: Map<string, { meta: any; body: string }>;
 
-    def get_descriptions(self) -> str:
-        """Layer 1: cheap one-liners for the system prompt."""
-        lines = []
-        for name, skill in self.skills.items():
-            desc = skill["meta"].get("description", "")
-            lines.append(f"  - {name}: {desc}")
-        return "\n".join(lines)
+  constructor(skillsDir: Path) {
+    this.skills = new Map();
+    for (const f of skillsDir.rglob("SKILL.md").sort()) {
+      const text = f.readText();
+      const { meta, body } = this._parseFrontmatter(text);
+      // Use the frontmatter name, or fall back to the directory name
+      const name = meta.name || f.parent.name;
+      this.skills.set(name, { meta, body });
+    }
+  }
 
-    def get_content(self, name: str) -> str:
-        """Layer 2: full body, returned as a tool_result."""
-        skill = self.skills.get(name)
-        if not skill:
-            return f"Error: Unknown skill '{name}'."
-        return f"<skill name=\"{name}\">\n{skill['body']}\n</skill>"
+  getDescriptions(): string {
+    /** Layer 1: cheap one-liners for the system prompt. */
+    const lines: string[] = [];
+    for (const [name, skill] of this.skills.entries()) {
+      const desc = skill.meta.description || "";
+      lines.push(`  - ${name}: ${desc}`);
+    }
+    return lines.join("\n");
+  }
+
+  getContent(name: string): string {
+    /** Layer 2: full body, returned as a tool_result. */
+    const skill = this.skills.get(name);
+    if (!skill) {
+      return `Error: Unknown skill '${name}'.`;
+    }
+    return `<skill name="${name}">\n${skill.body}\n</skill>`;
+  }
+}
 ```
 
 **Step 3.** Layer 1 goes into the system prompt so the model always knows what skills exist. Layer 2 is wired up as a normal tool handler -- the model calls `load_skill` when it decides it needs the full instructions.
 
-```python
-SYSTEM = f"""You are a coding agent at {WORKDIR}.
+```typescript
+const SYSTEM = `You are a coding agent at ${WORKDIR}.
 Skills available:
-{SKILL_LOADER.get_descriptions()}"""
+${SKILL_LOADER.getDescriptions()}`;
 
-TOOL_HANDLERS = {
-    # ...base tools...
-    "load_skill": lambda **kw: SKILL_LOADER.get_content(kw["name"]),
-}
+const TOOL_HANDLERS = {
+  // ...base tools...
+  "load_skill": (kw: any) => SKILL_LOADER.getContent(kw["name"]),
+};
 ```
 
 The model learns what skills exist (cheap, ~100 tokens each) and loads them only when relevant (expensive, ~2000 tokens each). On a typical turn, only one skill is loaded instead of all ten.

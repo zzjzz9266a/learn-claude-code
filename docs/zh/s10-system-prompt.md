@@ -118,17 +118,19 @@ core
 
 ### 第一步：做一个 builder
 
-```python
-class SystemPromptBuilder:
-    def build(self) -> str:
-        parts = []
-        parts.append(self._build_core())
-        parts.append(self._build_tools())
-        parts.append(self._build_skills())
-        parts.append(self._build_memory())
-        parts.append(self._build_claude_md())
-        parts.append(self._build_dynamic())
-        return "\n\n".join(p for p in parts if p)
+```typescript
+class SystemPromptBuilder {
+    build(): string {
+        const parts: string[] = [];
+        parts.push(this._buildCore());
+        parts.push(this._buildTools());
+        parts.push(this._buildSkills());
+        parts.push(this._buildMemory());
+        parts.push(this._buildClaudeMd());
+        parts.push(this._buildDynamic());
+        return parts.filter(p => p).join("\n\n");
+    }
+}
 ```
 
 这就是这一章最核心的设计。

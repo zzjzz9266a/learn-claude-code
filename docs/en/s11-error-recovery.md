@@ -45,87 +45,100 @@ LLM call
 
 **Step 1. Track recovery state.** Before you can recover, you need to know how many times you have already tried. A simple counter per category prevents infinite loops:
 
-```python
-recovery_state = {
-    "continuation_attempts": 0,
-    "compact_attempts": 0,
-    "transport_attempts": 0,
-}
+```typescript
+const recoveryState = {
+  continuationAttempts: 0,
+  compactAttempts: 0,
+  transportAttempts: 0,
+};
 ```
 
 **Step 2. Classify the failure.** Each failure maps to exactly one recovery kind. The classifier examines the stop reason and error text, then returns a structured decision:
 
-```python
-def choose_recovery(stop_reason: str | None, error_text: str | None) -> dict:
-    if stop_reason == "max_tokens":
-        return {"kind": "continue", "reason": "output truncated"}
+```typescript
+function chooseRecovery(stopReason: string | null, errorText: string | null): any {
+  if (stopReason === "max_tokens") {
+    return { kind: "continue", reason: "output truncated" };
+  }
 
-    if error_text and "prompt" in error_text and "long" in error_text:
-        return {"kind": "compact", "reason": "context too large"}
+  if (errorText && errorText.includes("prompt") && errorText.includes("long")) {
+    return { kind: "compact", reason: "context too large" };
+  }
 
-    if error_text and any(word in error_text for word in [
-        "timeout", "rate", "unavailable", "connection"
-    ]):
-        return {"kind": "backoff", "reason": "transient transport failure"}
+  if (errorText && ["timeout", "rate", "unavailable", "connection"].some(word => errorText.includes(word))) {
+    return { kind: "backoff", reason: "transient transport failure" };
+  }
 
-    return {"kind": "fail", "reason": "unknown or non-recoverable error"}
+  return { kind: "fail", reason: "unknown or non-recoverable error" };
+}
 ```
 
 The separation matters: classify first, act second. That way the recovery reason stays visible in state instead of disappearing inside a catch block.
 
 **Step 3. Handle continuation (truncated output).** When the model runs out of output space, the task did not fail -- the turn just ended too early. You inject a continuation reminder and retry:
 
-```python
-CONTINUE_MESSAGE = (
-    "Output limit hit. Continue directly from where you stopped. "
-    "Do not restart or repeat."
-)
+```typescript
+const CONTINUE_MESSAGE = (
+  "Output limit hit. Continue directly from where you stopped. " +
+  "Do not restart or repeat."
+);
 ```
 
 Without this reminder, models tend to restart from the beginning or repeat what they already wrote. The explicit instruction to "continue directly" keeps the output flowing forward.
 
 **Step 4. Handle compaction (context overflow).** When the prompt becomes too large, the problem is not the task itself -- the accumulated context needs to shrink before the next turn can proceed. You call the same `auto_compact` mechanism from s06 to summarize history, then retry:
 
-```python
-if decision["kind"] == "compact":
-    messages = auto_compact(messages)
-    continue
+```typescript
+if (decision.kind === "compact") {
+  messages = autoCompact(messages);
+  continue;
+}
 ```
 
 **Step 5. Handle backoff (transient errors).** When the error is probably temporary -- a timeout, a rate limit, a brief outage -- you wait and try again. Exponential backoff (doubling the delay each attempt, plus random jitter to avoid thundering-herd problems where many clients retry at the same instant) keeps the system from hammering a struggling server:
 
-```python
-def backoff_delay(attempt: int) -> float:
-    delay = min(BACKOFF_BASE_DELAY * (2 ** attempt), BACKOFF_MAX_DELAY)
-    jitter = random.uniform(0, 1)
-    return delay + jitter
+```typescript
+function backoffDelay(attempt: number): number {
+  const delay = Math.min(BACKOFF_BASE_DELAY * Math.pow(2, attempt), BACKOFF_MAX_DELAY);
+  const jitter = Math.random();
+  return delay + jitter;
+}
 ```
 
 **Step 6. Wire it into the loop.** The recovery logic sits right inside the agent loop. Each branch either adjusts the messages and continues, or gives up:
 
-```python
-while True:
-    try:
-        response = client.messages.create(...)
-        decision = choose_recovery(response.stop_reason, None)
-    except Exception as e:
-        response = None
-        decision = choose_recovery(None, str(e).lower())
+```typescript
+while (true) {
+  let response: any;
+  let decision: any;
 
-    if decision["kind"] == "continue":
-        messages.append({"role": "user", "content": CONTINUE_MESSAGE})
-        continue
+  try {
+    response = await client.messages.create(...);
+    decision = chooseRecovery(response.stop_reason, null);
+  } catch (e: any) {
+    response = null;
+    decision = chooseRecovery(null, String(e).toLowerCase());
+  }
 
-    if decision["kind"] == "compact":
-        messages = auto_compact(messages)
-        continue
+  if (decision.kind === "continue") {
+    messages.push({ role: "user", content: CONTINUE_MESSAGE });
+    continue;
+  }
 
-    if decision["kind"] == "backoff":
-        time.sleep(backoff_delay(...))
-        continue
+  if (decision.kind === "compact") {
+    messages = autoCompact(messages);
+    continue;
+  }
 
-    if decision["kind"] == "fail":
-        break
+  if (decision.kind === "backoff") {
+    await sleep(backoffDelay(...));
+    continue;
+  }
+
+  if (decision.kind === "fail") {
+    break;
+  }
+}
 ```
 
 The point is not clever code. The point is: classify, choose, retry with a budget.

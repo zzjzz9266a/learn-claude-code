@@ -117,12 +117,12 @@ LLM call
 
 ### 1. 恢复状态
 
-```python
-recovery_state = {
-    "continuation_attempts": 0,
-    "compact_attempts": 0,
-    "transport_attempts": 0,
-}
+```typescript
+const recoveryState = {
+    continuationAttempts: 0,
+    compactAttempts: 0,
+    transportAttempts: 0,
+};
 ```
 
 它的作用不是“记录一切”，而是：
@@ -132,10 +132,10 @@ recovery_state = {
 
 ### 2. 恢复决策
 
-```python
+```typescript
 {
-    "kind": "continue" | "compact" | "backoff" | "fail",
-    "reason": "why this branch was chosen",
+    kind: "continue" | "compact" | "backoff" | "fail",
+    reason: "why this branch was chosen",
 }
 ```
 
@@ -143,11 +143,11 @@ recovery_state = {
 
 ### 3. 续写提示
 
-```python
-CONTINUE_MESSAGE = (
-    "Output limit hit. Continue directly from where you stopped. "
+```typescript
+const CONTINUE_MESSAGE = (
+    "Output limit hit. Continue directly from where you stopped. " +
     "Do not restart or repeat."
-)
+);
 ```
 
 这条提示非常重要。
@@ -162,25 +162,27 @@ CONTINUE_MESSAGE = (
 
 先写一个恢复选择器：
 
-```python
-def choose_recovery(stop_reason: str | None, error_text: str | None) -> dict:
-    if stop_reason == "max_tokens":
-        return {"kind": "continue", "reason": "output truncated"}
+```typescript
+function chooseRecovery(stopReason: string | null, errorText: string | null): any {
+    if (stopReason === "max_tokens") {
+        return { kind: "continue", reason: "output truncated" };
+    }
 
-    if error_text and "prompt" in error_text and "long" in error_text:
-        return {"kind": "compact", "reason": "context too large"}
+    if (errorText && errorText.includes("prompt") && errorText.includes("long")) {
+        return { kind: "compact", reason: "context too large" };
+    }
 
-    if error_text and any(word in error_text for word in [
-        "timeout", "rate", "unavailable", "connection"
-    ]):
-        return {"kind": "backoff", "reason": "transient transport failure"}
+    if (errorText && ["timeout", "rate", "unavailable", "connection"].some(word => errorText.includes(word))) {
+        return { kind: "backoff", reason: "transient transport failure" };
+    }
 
-    return {"kind": "fail", "reason": "unknown or non-recoverable error"}
+    return { kind: "fail", reason: "unknown or non-recoverable error" };
+}
 ```
 
 再把它接进主循环：
 
-```python
+```typescript
 while True:
     try:
         response = client.messages.create(...)
@@ -225,13 +227,15 @@ while True:
 2. 告诉模型不要重来，不要重复
 3. 让主循环继续
 
-```python
-if response.stop_reason == "max_tokens":
-    if state["continuation_attempts"] >= 3:
-        return "Error: output recovery exhausted"
-    state["continuation_attempts"] += 1
-    messages.append({"role": "user", "content": CONTINUE_MESSAGE})
-    continue
+```typescript
+if (response.stopReason === "max_tokens") {
+    if (state.continuationAttempts >= 3) {
+        return "Error: output recovery exhausted";
+    }
+    state.continuationAttempts++;
+    messages.push({ role: "user", content: CONTINUE_MESSAGE });
+    continue;
+}
 ```
 
 ### 路径 2：上下文太长时，先压缩再重试
@@ -249,13 +253,14 @@ if response.stop_reason == "max_tokens":
 - 关键决定是什么
 - 下一步准备做什么
 
-```python
-def auto_compact(messages: list) -> list:
-    summary = summarize_messages(messages)
+```typescript
+function autoCompact(messages: any[]): any[] {
+    const summary = summarizeMessages(messages);
     return [{
-        "role": "user",
-        "content": "This session was compacted. Continue from this summary:\n" + summary,
-    }]
+        role: "user",
+        content: "This session was compacted. Continue from this summary:\n" + summary,
+    }];
+}
 ```
 
 ### 路径 3：连接抖动时，退避重试
@@ -274,9 +279,10 @@ def auto_compact(messages: list) -> list:
 
 如果你瞬间连续重打，只会更容易失败。
 
-```python
-def backoff_delay(attempt: int) -> float:
-    return min(1.0 * (2 ** attempt), 30.0) + random.uniform(0, 1)
+```typescript
+function backoffDelay(attempt: number): number {
+    return Math.min(1.0 * Math.pow(2, attempt), 30.0) + Math.random();
+}
 ```
 
 ## 如何接到主循环里

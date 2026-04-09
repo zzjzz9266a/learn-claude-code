@@ -111,7 +111,7 @@ IDLE
 
 教材コードでは、判定は単に `status == "pending"` では終わりません。
 
-```python
+```typescript
 def is_claimable_task(task: dict, role: str | None = None) -> bool:
     return (
         task.get("status") == "pending"
@@ -137,7 +137,7 @@ task は今の教材コードでは次のような role 制約を持てます。
 
 たとえば、
 
-```python
+```typescript
 {
     "id": 7,
     "subject": "Implement login page",
@@ -156,7 +156,7 @@ task は今の教材コードでは次のような role 制約を持てます。
 
 claim が成功すると、task record は少なくとも次のように更新されます。
 
-```python
+```typescript
 {
     "id": 7,
     "owner": "alice",
@@ -191,7 +191,7 @@ task file の更新だけでは、今の最終状態しか見えません。
 
 中身のイメージはこうです。
 
-```python
+```typescript
 {
     "event": "task.claimed",
     "task_id": 7,
@@ -238,7 +238,7 @@ compact の後や idle からの復帰直後は、teammate が自分の identity
 
 そのため教材コードには identity block の再注入があります。
 
-```python
+```typescript
 {
     "role": "user",
     "content": "<identity>You are 'alice', role: frontend, team: default. Continue your work.</identity>",
@@ -247,7 +247,7 @@ compact の後や idle からの復帰直後は、teammate が自分の identity
 
 さらに短い assistant acknowledgement も添えています。
 
-```python
+```typescript
 {"role": "assistant", "content": "I am alice. Continuing."}
 ```
 
@@ -265,7 +265,7 @@ compact の後や idle からの復帰直後は、teammate が自分の identity
 
 まず teammate loop を 2 フェーズに分けます。
 
-```python
+```typescript
 while True:
     run_work_phase(...)
     should_resume = run_idle_phase(...)
@@ -285,7 +285,7 @@ while True:
 
 `idle` に入ったら最初に見るべきは task board ではなく inbox です。
 
-```python
+```typescript
 def idle_phase(name: str, messages: list) -> bool:
     inbox = bus.read_inbox(name)
     if inbox:
@@ -304,7 +304,7 @@ def idle_phase(name: str, messages: list) -> bool:
 
 ### 第 3 段階: inbox が空なら role 付きで task board を走査する
 
-```python
+```typescript
 unclaimed = scan_unclaimed_tasks(role)
 if unclaimed:
     task = unclaimed[0]
@@ -335,7 +335,7 @@ if unclaimed:
 
 claim 成功後は、そのまま resume してはいけません。
 
-```python
+```typescript
 ensure_identity_context(messages, name, role, team_name)
 messages.append({
     "role": "user",
@@ -389,7 +389,7 @@ Alice と Bob が同時に同じ task を見たら、
 
 そのため教材コードでも lock を使っています。
 
-```python
+```typescript
 with claim_lock:
     task = load(task_id)
     if task["owner"]:

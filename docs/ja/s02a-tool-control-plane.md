@@ -70,7 +70,7 @@ write-back to loop
 
 モデルに見せる tool の定義です。
 
-```python
+```typescript
 tool = {
     "name": "read_file",
     "description": "...",
@@ -82,7 +82,7 @@ tool = {
 
 名前から handler を引く表です。
 
-```python
+```typescript
 dispatch = {
     "read_file": run_read,
     "bash": run_bash,
@@ -109,7 +109,7 @@ tool が共有状態へ触るための文脈です。
 
 loop へ返すときの整形済み result です。
 
-```python
+```typescript
 {
     "type": "tool_result",
     "tool_use_id": "...",

@@ -108,7 +108,7 @@ Those belong in the message stream or in adjacent input surfaces.
 
 ### `SystemPromptBlock`
 
-```python
+```typescript
 block = {
     "text": "...",
     "cache_scope": None,
@@ -117,7 +117,7 @@ block = {
 
 ### `PromptParts`
 
-```python
+```typescript
 parts = {
     "core": "...",
     "tools": "...",
@@ -130,7 +130,7 @@ parts = {
 
 ### `NormalizedMessage`
 
-```python
+```typescript
 message = {
     "role": "user" | "assistant",
     "content": [...],
@@ -141,7 +141,7 @@ Treat `content` as a list of blocks, not just one string.
 
 ### `ReminderMessage`
 
-```python
+```typescript
 reminder = {
     "role": "system",
     "content": "Current mode: plan",
@@ -161,7 +161,7 @@ Do not throw away the prompt-builder step.
 
 ### 2. Make messages a separate pipeline
 
-```python
+```typescript
 def build_messages(raw_messages, attachments, reminders):
     messages = normalize_messages(raw_messages)
     messages = attach_memory(messages, attachments)
@@ -171,7 +171,7 @@ def build_messages(raw_messages, attachments, reminders):
 
 ### 3. Assemble the final payload only at the end
 
-```python
+```typescript
 payload = {
     "system": build_system_prompt(),
     "messages": build_messages(...),

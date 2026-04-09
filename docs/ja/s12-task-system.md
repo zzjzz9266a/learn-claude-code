@@ -56,7 +56,7 @@ s03のTodoManagerはメモリ上のフラットなチェックリストに過ぎ
 
 1. **TaskManager**: タスクごとに1つのJSONファイル、依存グラフ付きCRUD。
 
-```python
+```typescript
 class TaskManager:
     def __init__(self, tasks_dir: Path):
         self.dir = tasks_dir
@@ -74,7 +74,7 @@ class TaskManager:
 
 2. **依存解除**: タスク完了時に、他タスクの`blockedBy`リストから完了IDを除去し、後続タスクをアンブロックする。
 
-```python
+```typescript
 def _clear_dependency(self, completed_id):
     for f in self.dir.glob("task_*.json"):
         task = json.loads(f.read_text())
@@ -85,7 +85,7 @@ def _clear_dependency(self, completed_id):
 
 3. **ステータス遷移 + 依存配線**: `update`がステータス変更と依存エッジを担う。
 
-```python
+```typescript
 def update(self, task_id, status=None,
            add_blocked_by=None, remove_blocked_by=None):
     task = self._load(task_id)
@@ -102,7 +102,7 @@ def update(self, task_id, status=None,
 
 4. 4つのタスクツールをディスパッチマップに追加する。
 
-```python
+```typescript
 TOOL_HANDLERS = {
     # ...base tools...
     "task_create": lambda **kw: TASKS.create(kw["subject"]),

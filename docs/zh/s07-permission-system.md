@@ -52,11 +52,11 @@
 
 最小规则通常包含三部分：
 
-```python
+```typescript
 {
-    "tool": "bash",
-    "content": "sudo *",
-    "behavior": "deny",
+    tool: "bash",
+    content: "sudo *",
+    behavior: "deny",
 }
 ```
 
@@ -138,13 +138,13 @@ tool_call
 
 ### 1. 权限规则
 
-```python
-PermissionRule = {
-    "tool": str,
-    "behavior": "allow" | "deny" | "ask",
-    "path": str | None,
-    "content": str | None,
-}
+```typescript
+type PermissionRule = {
+    tool: string;
+    behavior: "allow" | "deny" | "ask";
+    path?: string;
+    content?: string;
+};
 ```
 
 你不一定一开始就需要 `path` 和 `content` 都支持。  
@@ -155,16 +155,16 @@ PermissionRule = {
 
 ### 2. 权限模式
 
-```python
-mode = "default" | "plan" | "auto"
+```typescript
+type Mode = "default" | "plan" | "auto";
 ```
 
 ### 3. 权限决策结果
 
-```python
+```typescript
 {
-    "behavior": "allow" | "deny" | "ask",
-    "reason": "why this decision was made"
+    behavior: "allow" | "deny" | "ask",
+    reason: "why this decision was made"
 }
 ```
 
@@ -172,41 +172,51 @@ mode = "default" | "plan" | "auto"
 
 ## 最小实现怎么写
 
-```python
-def check_permission(tool_name: str, tool_input: dict) -> dict:
-    # 1. deny rules
-    for rule in deny_rules:
-        if matches(rule, tool_name, tool_input):
-            return {"behavior": "deny", "reason": "matched deny rule"}
+```typescript
+function checkPermission(toolName: string, toolInput: any): any {
+    // 1. deny rules
+    for (const rule of denyRules) {
+        if (matches(rule, toolName, toolInput)) {
+            return { behavior: "deny", reason: "matched deny rule" };
+        }
+    }
 
-    # 2. mode
-    if mode == "plan" and tool_name in WRITE_TOOLS:
-        return {"behavior": "deny", "reason": "plan mode blocks writes"}
-    if mode == "auto" and tool_name in READ_ONLY_TOOLS:
-        return {"behavior": "allow", "reason": "auto mode allows reads"}
+    // 2. mode
+    if (mode === "plan" && WRITE_TOOLS.includes(toolName)) {
+        return { behavior: "deny", reason: "plan mode blocks writes" };
+    }
+    if (mode === "auto" && READ_ONLY_TOOLS.includes(toolName)) {
+        return { behavior: "allow", reason: "auto mode allows reads" };
+    }
 
-    # 3. allow rules
-    for rule in allow_rules:
-        if matches(rule, tool_name, tool_input):
-            return {"behavior": "allow", "reason": "matched allow rule"}
+    // 3. allow rules
+    for (const rule of allowRules) {
+        if (matches(rule, toolName, toolInput)) {
+            return { behavior: "allow", reason: "matched allow rule" };
+        }
+    }
 
-    # 4. fallback
-    return {"behavior": "ask", "reason": "needs confirmation"}
+    // 4. fallback
+    return { behavior: "ask", reason: "needs confirmation" };
+}
 ```
 
 然后在执行工具前接进去：
 
-```python
-decision = perms.check(tool_name, tool_input)
+```typescript
+const decision = perms.check(toolName, toolInput);
 
-if decision["behavior"] == "deny":
-    return f"Permission denied: {decision['reason']}"
-if decision["behavior"] == "ask":
-    ok = ask_user(...)
-    if not ok:
-        return "Permission denied by user"
+if (decision.behavior === "deny") {
+    return `Permission denied: ${decision.reason}`;
+}
+if (decision.behavior === "ask") {
+    const ok = askUser(...);
+    if (!ok) {
+        return "Permission denied by user";
+    }
+}
 
-return handler(**tool_input)
+return handler(toolInput);
 ```
 
 ## Bash 为什么值得单独讲

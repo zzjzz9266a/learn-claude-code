@@ -121,11 +121,11 @@ The user explicitly prefers pnpm for package management commands.
 
 ## 最小実装
 
-```python
+```typescript
 MEMORY_TYPES = ("user", "feedback", "project", "reference")
 ```
 
-```python
+```typescript
 def save_memory(name, description, mem_type, content):
     path = memory_dir / f"{slugify(name)}.md"
     path.write_text(render_frontmatter(name, description, mem_type) + content)
@@ -134,7 +134,7 @@ def save_memory(name, description, mem_type, content):
 
 次に、セッション開始時に読み込みます。
 
-```python
+```typescript
 memories = memory_store.load_all()
 ```
 

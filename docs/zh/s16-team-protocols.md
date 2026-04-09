@@ -75,25 +75,25 @@
 
 ### 协议消息
 
-```python
+```typescript
 {
-    "type": "shutdown_request",
-    "from": "lead",
-    "to": "alice",
-    "request_id": "req_001",
-    "payload": {},
+    type: "shutdown_request",
+    from: "lead",
+    to: "alice",
+    requestId: "req_001",
+    payload: {},
 }
 ```
 
 ### 请求追踪表
 
-```python
-requests = {
-    "req_001": {
-        "kind": "shutdown",
-        "status": "pending",
-    }
-}
+```typescript
+const requests = new Map<string, any>([
+    ["req_001", {
+        kind: "shutdown",
+        status: "pending",
+    }]
+]);
 ```
 
 只要这两层都存在，系统就能同时回答：
@@ -105,15 +105,15 @@ requests = {
 
 ### 1. ProtocolEnvelope
 
-```python
-message = {
-    "type": "shutdown_request",
-    "from": "lead",
-    "to": "alice",
-    "request_id": "req_001",
-    "payload": {},
-    "timestamp": 1710000000.0,
-}
+```typescript
+const message = {
+    type: "shutdown_request",
+    from: "lead",
+    to: "alice",
+    requestId: "req_001",
+    payload: {},
+    timestamp: 1710000000.0,
+};
 ```
 
 它比普通消息多出来的关键字段就是：
@@ -124,14 +124,14 @@ message = {
 
 ### 2. RequestRecord
 
-```python
-request = {
-    "request_id": "req_001",
-    "kind": "shutdown",
-    "from": "lead",
-    "to": "alice",
-    "status": "pending",
-}
+```typescript
+const request = {
+    requestId: "req_001",
+    kind: "shutdown",
+    from: "lead",
+    to: "alice",
+    status: "pending",
+};
 ```
 
 它负责记录：
@@ -182,7 +182,7 @@ pending -> expired
 
 发请求：
 
-```python
+```typescript
 def request_shutdown(target: str):
     request_id = new_id()
     requests[request_id] = {
@@ -201,7 +201,7 @@ def request_shutdown(target: str):
 
 收响应：
 
-```python
+```typescript
 def handle_shutdown_response(request_id: str, approve: bool):
     record = requests[request_id]
     record["status"] = "approved" if approve else "rejected"
@@ -213,7 +213,7 @@ def handle_shutdown_response(request_id: str, approve: bool):
 
 比如某个队友想做高风险改动，可以先提计划：
 
-```python
+```typescript
 def submit_plan(name: str, plan_text: str):
     request_id = new_id()
     requests[request_id] = {
@@ -233,7 +233,7 @@ def submit_plan(name: str, plan_text: str):
 
 领导审批：
 
-```python
+```typescript
 def review_plan(request_id: str, approve: bool, feedback: str = ""):
     record = requests[request_id]
     record["status"] = "approved" if approve else "rejected"

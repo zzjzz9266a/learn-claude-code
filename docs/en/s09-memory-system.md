@@ -63,8 +63,8 @@ Examples: "this old directory still cannot be deleted because deployment depends
 
 Examples: incident board URL, monitoring dashboard location, spec document location.
 
-```python
-MEMORY_TYPES = ("user", "feedback", "project", "reference")
+```typescript
+const MEMORY_TYPES = ["user", "feedback", "project", "reference"];
 ```
 
 **Step 2.** Save one record per file using frontmatter. Each memory is a markdown file with YAML frontmatter that tells the system what the memory is called, what kind it is, and what it is roughly about.
@@ -78,11 +78,12 @@ type: user
 The user explicitly prefers pnpm for package management commands.
 ```
 
-```python
-def save_memory(name, description, mem_type, content):
-    path = memory_dir / f"{slugify(name)}.md"
-    path.write_text(render_frontmatter(name, description, mem_type) + content)
-    rebuild_index()
+```typescript
+function saveMemory(name: string, description: string, memType: string, content: string): void {
+  const path = memoryDir / `${slugify(name)}.md`;
+  path.writeText(renderFrontmatter(name, description, memType) + content);
+  rebuildIndex();
+}
 ```
 
 **Step 3.** Build a small index so the system knows what memories exist without reading every file.
@@ -99,8 +100,8 @@ The index is not the memory itself -- it is a quick map of what exists.
 
 **Step 4.** Load relevant memory at session start and turn it into a prompt section. Memory becomes useful only when it is fed back into the model input. This is why s09 naturally connects into s10.
 
-```python
-memories = memory_store.load_all()
+```typescript
+const memories = memoryStore.loadAll();
 ```
 
 **Step 5.** Know what should NOT go into memory. This boundary is the most important part of the chapter, and the place where most beginners go wrong.

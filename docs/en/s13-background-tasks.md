@@ -41,56 +41,81 @@ Agent --[spawn A]--[spawn B]--[other work]----
 
 **Step 1.** Create a `BackgroundManager` that tracks running tasks with a thread-safe notification queue. The lock ensures that the main thread and background threads never corrupt the queue simultaneously.
 
-```python
-class BackgroundManager:
-    def __init__(self):
-        self.tasks = {}
-        self._notification_queue = []
-        self._lock = threading.Lock()
+```typescript
+class BackgroundManager {
+  private tasks: Map<string, any> = new Map();
+  private notificationQueue: any[] = [];
+  private lock = new Mutex();
+}
 ```
 
 **Step 2.** The `run()` method starts a daemon thread and returns immediately. A daemon thread is one that the Python runtime kills automatically when the main program exits -- you do not need to join it or clean it up.
 
-```python
-def run(self, command: str) -> str:
-    task_id = str(uuid.uuid4())[:8]
-    self.tasks[task_id] = {"status": "running", "command": command}
-    thread = threading.Thread(
-        target=self._execute, args=(task_id, command), daemon=True)
-    thread.start()
-    return f"Background task {task_id} started"
+```typescript
+run(command: string): string {
+  const taskId = crypto.randomUUID().slice(0, 8);
+  this.tasks.set(taskId, { status: "running", command: command });
+  const thread = new Thread(
+    () => this._execute(taskId, command),
+    { daemon: true }
+  );
+  thread.start();
+  return `Background task ${taskId} started`;
+}
 ```
 
 **Step 3.** When the subprocess finishes, the background thread puts its result into the notification queue. The lock makes this safe even if the main thread is draining the queue at the same time.
 
-```python
-def _execute(self, task_id, command):
-    try:
-        r = subprocess.run(command, shell=True, cwd=WORKDIR,
-            capture_output=True, text=True, timeout=300)
-        output = (r.stdout + r.stderr).strip()[:50000]
-    except subprocess.TimeoutExpired:
-        output = "Error: Timeout (300s)"
-    with self._lock:
-        self._notification_queue.append({
-            "task_id": task_id, "result": output[:500]})
+```typescript
+async _execute(taskId: string, command: string): Promise<void> {
+  let output: string;
+  try {
+    const r = await subprocess.run(command, {
+      shell: true,
+      cwd: WORKDIR,
+      captureOutput: true,
+      timeout: 300
+    });
+    output = (r.stdout + r.stderr).trim().slice(0, 50000);
+  } catch (e) {
+    if (e instanceof TimeoutExpired) {
+      output = "Error: Timeout (300s)";
+    }
+  }
+  this.lock.acquire();
+  try {
+    this.notificationQueue.push({
+      taskId: taskId,
+      result: output.slice(0, 500)
+    });
+  } finally {
+    this.lock.release();
+  }
+}
 ```
 
 **Step 4.** The agent loop drains notifications before each LLM call. This is the drain-before-call pattern: right before you ask the model to think, sweep up any background results and add them to the conversation so the model sees them in its next turn.
 
-```python
-def agent_loop(messages: list):
-    while True:
-        notifs = BG.drain_notifications()
-        if notifs:
-            notif_text = "\n".join(
-                f"[bg:{n['task_id']}] {n['result']}" for n in notifs)
-            messages.append({"role": "user",
-                "content": f"<background-results>\n{notif_text}\n"
-                           f"</background-results>"})
-            messages.append({"role": "assistant",
-                "content": "Noted background results."})
-        response = client.messages.create(...)
+```typescript
+async function agentLoop(messages: any[]) {
+  while (true) {
+    const notifs = BG.drainNotifications();
+    if (notifs.length > 0) {
+      const notifText = notifs
+        .map(n => `[bg:${n.taskId}] ${n.result}`)
+        .join("\n");
+      messages.push({
+        role: "user",
+        content: `<background-results>\n${notifText}\n</background-results>`
+      });
+      messages.push({
+        role: "assistant",
+        content: "Noted background results."
+      });
+    }
+    const response = await client.messages.create(...);
+  }
+}
 ```
 
 This teaching demo keeps the core loop single-threaded; only subprocess waiting is parallelized. A production system would typically split background work into several runtime lanes, but starting with one clean pattern makes the mechanics easy to follow.

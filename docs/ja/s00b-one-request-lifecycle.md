@@ -77,7 +77,7 @@ tests/test_auth.py の失敗を直して、原因も説明して
 
 まず「今回の request の状態」が作られます。
 
-```python
+```typescript
 query_state = {
     "messages": [{"role": "user", "content": user_text}],
     "turn_count": 1,
@@ -229,7 +229,7 @@ tool は text だけを返すとは限りません。
 
 最後に system は結果を `messages` へ戻します。
 
-```python
+```typescript
 messages.append({
     "role": "user",
     "content": [

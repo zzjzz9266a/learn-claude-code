@@ -95,7 +95,7 @@ harness 也不是模型。
 
 `dispatch map` 是一张映射表：
 
-```python
+```typescript
 {
     "read_file": read_file_handler,
     "write_file": write_file_handler,

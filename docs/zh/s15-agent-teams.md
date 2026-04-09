@@ -92,12 +92,12 @@ bob
 
 ### 1. TeamMember
 
-```python
-member = {
-    "name": "alice",
-    "role": "coder",
-    "status": "working",
-}
+```typescript
+const member = {
+    name: "alice",
+    role: "coder",
+    status: "working",
+};
 ```
 
 教学版先只保留这 3 个字段就够了：
@@ -108,11 +108,11 @@ member = {
 
 ### 2. TeamConfig
 
-```python
-config = {
-    "team_name": "default",
-    "members": [member1, member2],
-}
+```typescript
+const config = {
+    teamName: "default",
+    members: [member1, member2],
+};
 ```
 
 它通常可以放在：
@@ -128,13 +128,13 @@ config = {
 
 ### 3. MessageEnvelope
 
-```python
-message = {
-    "type": "message",
-    "from": "lead",
-    "content": "Please review auth module.",
-    "timestamp": 1710000000.0,
-}
+```typescript
+const message = {
+    type: "message",
+    from: "lead",
+    content: "Please review auth module.",
+    timestamp: 1710000000.0,
+};
 ```
 
 `envelope` 这个词本来是“信封”的意思。  
@@ -146,12 +146,18 @@ message = {
 
 ### 第一步：先有一份队伍名册
 
-```python
-class TeammateManager:
-    def __init__(self, team_dir: Path):
-        self.team_dir = team_dir
-        self.config_path = team_dir / "config.json"
-        self.config = self._load_config()
+```typescript
+class TeammateManager {
+    private teamDir: Path;
+    private configPath: Path;
+    private config: any;
+
+    constructor(teamDir: Path) {
+        this.teamDir = teamDir;
+        this.configPath = teamDir / "config.json";
+        this.config = this._loadConfig();
+    }
+}
 ```
 
 名册是本章的起点。  
@@ -159,18 +165,18 @@ class TeammateManager:
 
 ### 第二步：spawn 一个持久队友
 
-```python
-def spawn(self, name: str, role: str, prompt: str):
-    member = {"name": name, "role": role, "status": "working"}
-    self.config["members"].append(member)
-    self._save_config()
+```typescript
+spawn(name: string, role: string, prompt: string): void {
+    const member = { name: name, role: role, status: "working" };
+    this.config.members.push(member);
+    this._saveConfig();
 
-    thread = threading.Thread(
-        target=self._teammate_loop,
-        args=(name, role, prompt),
-        daemon=True,
-    )
-    thread.start()
+    const thread = new Thread(
+        () => this._teammateLoop(name, role, prompt),
+        { daemon: true }
+    );
+    thread.start();
+}
 ```
 
 这里的关键不在于线程本身，而在于：
@@ -188,15 +194,17 @@ def spawn(self, name: str, role: str, prompt: str):
 
 发消息时追加一行：
 
-```python
-def send(self, sender: str, to: str, content: str):
-    with open(f"{to}.jsonl", "a") as f:
-        f.write(json.dumps({
-            "type": "message",
-            "from": sender,
-            "content": content,
-            "timestamp": time.time(),
-        }) + "\n")
+```typescript
+send(sender: string, to: string, content: string): void {
+    const f = fs.openSync(`${to}.jsonl`, "a");
+    fs.writeSync(f, JSON.stringify({
+        type: "message",
+        from: sender,
+        content: content,
+        timestamp: Date.now() / 1000,
+    }) + "\n");
+    fs.closeSync(f);
+}
 ```
 
 收消息时：
@@ -207,17 +215,20 @@ def send(self, sender: str, to: str, content: str):
 
 ### 第四步：队友每轮先看邮箱，再继续工作
 
-```python
-def teammate_loop(name: str, role: str, prompt: str):
-    messages = [{"role": "user", "content": prompt}]
+```typescript
+async function teammateLoop(name: string, role: string, prompt: string): Promise<void> {
+    const messages: any[] = [{ role: "user", content: prompt }];
 
-    while True:
-        inbox = bus.read_inbox(name)
-        for item in inbox:
-            messages.append({"role": "user", "content": json.dumps(item)})
+    while (true) {
+        const inbox = bus.readInbox(name);
+        for (const item of inbox) {
+            messages.push({ role: "user", content: JSON.stringify(item) });
+        }
 
-        response = client.messages.create(...)
+        const response = await client.messages.create(...);
         ...
+    }
+}
 ```
 
 这一步一定要讲透。

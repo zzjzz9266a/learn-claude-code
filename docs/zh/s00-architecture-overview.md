@@ -350,7 +350,7 @@ Tasks / Teams / Worktree / MCP (s12-s19)
 
 如果你的目标是自己写一个结构完整、接近真实主脉络的类似系统，最低限度要把下面这些数据结构设计清楚：
 
-```python
+```typescript
 class AppState:
     messages: list
     tools: dict

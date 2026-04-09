@@ -61,20 +61,23 @@ continue    [Lever 2: auto_compact]
 
 The first line of defense runs at tool execution time, before a result even enters the conversation. When a tool result exceeds a size threshold, we write the full output to disk and replace it with a short preview. This prevents a single giant command output from consuming half the context window.
 
-```python
-PERSIST_OUTPUT_TRIGGER_CHARS_DEFAULT = 50000
-PERSIST_OUTPUT_TRIGGER_CHARS_BASH = 30000   # bash uses a lower threshold
+```typescript
+const PERSIST_OUTPUT_TRIGGER_CHARS_DEFAULT = 50000;
+const PERSIST_OUTPUT_TRIGGER_CHARS_BASH = 30000;   // bash uses a lower threshold
 
-def maybe_persist_output(tool_use_id, output, trigger_chars=None):
-    if len(output) <= trigger:
-        return output                                    # small enough -- keep inline
-    stored_path = _persist_tool_result(tool_use_id, output)
-    return _build_persisted_marker(stored_path, output)  # swap in a compact preview
-    # Returns: <persisted-output>
-    #   Output too large (48.8KB). Full output saved to: .task_outputs/tool-results/abc123.txt
-    #   Preview (first 2.0KB):
-    #   ... first 2000 chars ...
-    # </persisted-output>
+function maybePersistOutput(toolUseId: string, output: string, triggerChars?: number): string {
+  const trigger = triggerChars || PERSIST_OUTPUT_TRIGGER_CHARS_DEFAULT;
+  if (output.length <= trigger) {
+    return output;                                    // small enough -- keep inline
+  }
+  const storedPath = _persistToolResult(toolUseId, output);
+  return _buildPersistedMarker(storedPath, output);  // swap in a compact preview
+  // Returns: <persisted-output>
+  //   Output too large (48.8KB). Full output saved to: .task_outputs/tool-results/abc123.txt
+  //   Preview (first 2.0KB):
+  //   ... first 2000 chars ...
+  // </persisted-output>
+}
 ```
 
 The model can later `read_file` the stored path to access the full content if needed. Nothing is lost -- the detail just lives on disk instead of in the conversation.
@@ -83,42 +86,50 @@ The model can later `read_file` the stored path to access the full content if ne
 
 Before each LLM call, we scan for old tool results and replace them with one-line placeholders. This is invisible to the user and runs every turn. The key subtlety: we preserve `read_file` results because those serve as reference material the model often needs to look back at.
 
-```python
-PRESERVE_RESULT_TOOLS = {"read_file"}
+```typescript
+const PRESERVE_RESULT_TOOLS = new Set(["read_file"]);
 
-def micro_compact(messages: list) -> list:
-    tool_results = [...]  # collect all tool_result entries
-    if len(tool_results) <= KEEP_RECENT:
-        return messages                                  # not enough results to compact yet
-    for part in tool_results[:-KEEP_RECENT]:
-        if tool_name in PRESERVE_RESULT_TOOLS:
-            continue   # keep reference material
-        part["content"] = f"[Previous: used {tool_name}]"  # replace with short placeholder
-    return messages
+function microCompact(messages: any[]): any[] {
+  const toolResults: any[] = [];  // collect all tool_result entries
+  if (toolResults.length <= KEEP_RECENT) {
+    return messages;                                  // not enough results to compact yet
+  }
+  for (const part of toolResults.slice(0, -KEEP_RECENT)) {
+    if (PRESERVE_RESULT_TOOLS.has(toolName)) {
+      continue;   // keep reference material
+    }
+    part.content = `[Previous: used ${toolName}]`;  // replace with short placeholder
+  }
+  return messages;
+}
 ```
 
 ### Step 3: Lever 2 -- Auto-Compact
 
 When micro-compaction is not enough and the token count crosses a threshold, the harness takes a bigger step: it saves the full transcript to disk for recovery, asks the LLM to summarize the entire conversation, and then replaces all messages with that summary. The agent continues from the summary as if nothing happened.
 
-```python
-def auto_compact(messages: list) -> list:
-    # Save transcript for recovery
-    transcript_path = TRANSCRIPT_DIR / f"transcript_{int(time.time())}.jsonl"
-    with open(transcript_path, "w") as f:
-        for msg in messages:
-            f.write(json.dumps(msg, default=str) + "\n")
-    # LLM summarizes
-    response = client.messages.create(
-        model=MODEL,
-        messages=[{"role": "user", "content":
-            "Summarize this conversation for continuity..."
-            + json.dumps(messages, default=str)[:80000]}],  # cap at 80K chars for the summary call
-        max_tokens=2000,
-    )
-    return [
-        {"role": "user", "content": f"[Compressed]\n\n{response.content[0].text}"},
-    ]
+```typescript
+function autoCompact(messages: any[]): any[] {
+  // Save transcript for recovery
+  const transcriptPath = TRANSCRIPT_DIR / `transcript_${Math.floor(Date.now() / 1000)}.jsonl`;
+  const transcriptFile = transcriptPath.open("w");
+  for (const msg of messages) {
+    transcriptFile.write(JSON.stringify(msg) + "\n");
+  }
+  // LLM summarizes
+  const response = await client.messages.create({
+    model: MODEL,
+    messages: [{
+      role: "user",
+      content: "Summarize this conversation for continuity..." +
+        JSON.stringify(messages).slice(0, 80000)  // cap at 80K chars for the summary call
+    }],
+    max_tokens: 2000,
+  });
+  return [
+    { role: "user", content: `[Compressed]\n\n${response.content[0].text}` },
+  ];
+}
 ```
 
 ### Step 4: Lever 3 -- Manual Compact
@@ -129,16 +140,20 @@ The `compact` tool lets the model itself trigger summarization on demand. It use
 
 All four levers compose naturally inside the main loop:
 
-```python
-def agent_loop(messages: list):
-    while True:
-        micro_compact(messages)                        # Lever 1
-        if estimate_tokens(messages) > THRESHOLD:
-            messages[:] = auto_compact(messages)       # Lever 2
-        response = client.messages.create(...)
-        # ... tool execution with persisted-output ... # Lever 0
-        if manual_compact:
-            messages[:] = auto_compact(messages)       # Lever 3
+```typescript
+async function agentLoop(messages: any[]) {
+  while (true) {
+    microCompact(messages);                        // Lever 1
+    if (estimateTokens(messages) > THRESHOLD) {
+      messages = autoCompact(messages);            // Lever 2
+    }
+    const response = await client.messages.create(...);
+    // ... tool execution with persisted-output ... // Lever 0
+    if (manualCompact) {
+      messages = autoCompact(messages);            // Lever 3
+    }
+  }
+}
 ```
 
 Transcripts preserve full history on disk. Large outputs are saved to `.task_outputs/tool-results/`. Nothing is truly lost -- just moved out of active context.

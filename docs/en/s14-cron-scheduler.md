@@ -37,69 +37,76 @@ The key insight is that the scheduler is not a second agent loop. It feeds trigg
 
 **Step 1.** Define the schedule record. Each job stores a cron expression (a compact time-matching syntax like `0 9 * * 1` meaning "9:00 AM every Monday"), the prompt to execute, whether it recurs or fires once, and a `last_fired_at` timestamp to prevent double-firing.
 
-```python
-schedule = {
-    "id": "job_001",
-    "cron": "0 9 * * 1",
-    "prompt": "Run the weekly status report.",
-    "recurring": True,
-    "durable": True,
-    "created_at": 1710000000.0,
-    "last_fired_at": None,
-}
+```typescript
+const schedule = {
+  id: "job_001",
+  cron: "0 9 * * 1",
+  prompt: "Run the weekly status report.",
+  recurring: true,
+  durable: true,
+  createdAt: 1710000000.0,
+  lastFiredAt: null,
+};
 ```
 
 A durable job is written to disk and survives process restarts. A session-only job lives in memory and dies when the agent exits. One-shot jobs (`recurring: False`) fire once and then delete themselves.
 
 **Step 2.** Create a schedule through a tool call. The method stores the record and returns it so the model can confirm what was scheduled.
 
-```python
-def create(self, cron_expr: str, prompt: str, recurring: bool = True):
-    job = {
-        "id": new_id(),
-        "cron": cron_expr,
-        "prompt": prompt,
-        "recurring": recurring,
-        "created_at": time.time(),
-        "last_fired_at": None,
-    }
-    self.jobs.append(job)
-    return job
+```typescript
+create(cronExpr: string, prompt: string, recurring: boolean = true): any {
+  const job = {
+    id: newId(),
+    cron: cronExpr,
+    prompt: prompt,
+    recurring: recurring,
+    createdAt: Date.now() / 1000,
+    lastFiredAt: null,
+  };
+  this.jobs.push(job);
+  return job;
+}
 ```
 
 **Step 3.** Run a background checker loop that wakes up every 60 seconds and tests each schedule against the current time.
 
-```python
-def check_loop(self):
-    while True:
-        now = datetime.now()
-        self.check_jobs(now)
-        time.sleep(60)
+```typescript
+checkLoop(): void {
+  while (true) {
+    const now = new Date();
+    this.checkJobs(now);
+    sleep(60);
+  }
+}
 ```
 
 **Step 4.** When a schedule matches, enqueue a notification. The `last_fired_at` field is updated to prevent the same minute from triggering the job twice.
 
-```python
-def check_jobs(self, now):
-    for job in self.jobs:
-        if cron_matches(job["cron"], now):
-            self.queue.put({
-                "type": "scheduled_prompt",
-                "schedule_id": job["id"],
-                "prompt": job["prompt"],
-            })
-            job["last_fired_at"] = now.timestamp()
+```typescript
+checkJobs(now: Date): void {
+  for (const job of this.jobs) {
+    if (cronMatches(job.cron, now)) {
+      this.queue.put({
+        type: "scheduled_prompt",
+        scheduleId: job.id,
+        prompt: job.prompt,
+      });
+      job.lastFiredAt = now.getTime() / 1000;
+    }
+  }
+}
 ```
 
 **Step 5.** Feed scheduled notifications back into the main loop using the same drain pattern from s13. From the agent's perspective, a scheduled prompt looks just like a user message.
 
-```python
-notifications = scheduler.drain()
-for item in notifications:
-    messages.append({
-        "role": "user",
-        "content": f"[scheduled:{item['schedule_id']}] {item['prompt']}",
-    })
+```typescript
+const notifications = scheduler.drain();
+for (const item of notifications) {
+  messages.push({
+    role: "user",
+    content: `[scheduled:${item.scheduleId}] ${item.prompt}`,
+  });
+}
 ```
 
 ## Read Together

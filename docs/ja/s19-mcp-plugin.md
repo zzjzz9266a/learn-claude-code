@@ -99,7 +99,7 @@ mcp__browser__open_tab
 
 ### 3. 1 本の unified router
 
-```python
+```typescript
 if tool_name.startswith("mcp__"):
     return mcp_router.call(tool_name, arguments)
 else:
@@ -183,7 +183,7 @@ result normalization
 
 ### 1. server config
 
-```python
+```typescript
 {
     "command": "npx",
     "args": ["-y", "..."],
@@ -193,7 +193,7 @@ result normalization
 
 ### 2. 標準化された外部ツール定義
 
-```python
+```typescript
 {
     "name": "mcp__postgres__query",
     "description": "Run a SQL query",
@@ -203,7 +203,7 @@ result normalization
 
 ### 3. client registry
 
-```python
+```typescript
 clients = {
     "postgres": mcp_client_instance
 }

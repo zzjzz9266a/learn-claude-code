@@ -49,56 +49,72 @@ The structure above is a DAG -- a directed acyclic graph, meaning tasks flow for
 
 **Step 1.** Create a `TaskManager` that stores one JSON file per task, with CRUD operations and a dependency graph.
 
-```python
-class TaskManager:
-    def __init__(self, tasks_dir: Path):
-        self.dir = tasks_dir
-        self.dir.mkdir(exist_ok=True)
-        self._next_id = self._max_id() + 1
+```typescript
+class TaskManager {
+  private dir: Path;
+  private nextId: number;
 
-    def create(self, subject, description=""):
-        task = {"id": self._next_id, "subject": subject,
-                "status": "pending", "blockedBy": [],
-                "blocks": [], "owner": ""}
-        self._save(task)
-        self._next_id += 1
-        return json.dumps(task, indent=2)
+  constructor(tasksDir: Path) {
+    this.dir = tasksDir;
+    this.dir.mkdir({ exist_ok: true });
+    this.nextId = this._maxId() + 1;
+  }
+
+  create(subject: string, description?: string): string {
+    const task = {
+      id: this.nextId,
+      subject: subject,
+      status: "pending",
+      blockedBy: [],
+      blocks: [],
+      owner: ""
+    };
+    this._save(task);
+    this.nextId++;
+    return JSON.stringify(task, null, 2);
+  }
+}
 ```
 
 **Step 2.** Implement dependency resolution. When a task completes, clear its ID from every other task's `blockedBy` list, automatically unblocking dependents.
 
-```python
-def _clear_dependency(self, completed_id):
-    for f in self.dir.glob("task_*.json"):
-        task = json.loads(f.read_text())
-        if completed_id in task.get("blockedBy", []):
-            task["blockedBy"].remove(completed_id)
-            self._save(task)
+```typescript
+_clearDependency(completedId: number): void {
+  for (const f of this.dir.glob("task_*.json")) {
+    const task = JSON.parse(f.readText());
+    if (task.blockedBy?.includes(completedId)) {
+      task.blockedBy = task.blockedBy.filter(id => id !== completedId);
+      this._save(task);
+    }
+  }
+}
 ```
 
 **Step 3.** Wire up status transitions and dependency edges in the `update` method. When a task's status changes to `completed`, the dependency-clearing logic from Step 2 fires automatically.
 
-```python
-def update(self, task_id, status=None,
-           add_blocked_by=None, add_blocks=None):
-    task = self._load(task_id)
-    if status:
-        task["status"] = status
-        if status == "completed":
-            self._clear_dependency(task_id)
-    self._save(task)
+```typescript
+update(taskId: number, status?: string, addBlockedBy?: number[], addBlocks?: number[]): void {
+  const task = this._load(taskId);
+  if (status) {
+    task.status = status;
+    if (status === "completed") {
+      this._clearDependency(taskId);
+    }
+  }
+  this._save(task);
+}
 ```
 
 **Step 4.** Register four task tools in the dispatch map, giving the agent full control over creating, updating, listing, and inspecting tasks.
 
-```python
-TOOL_HANDLERS = {
-    # ...base tools...
-    "task_create": lambda **kw: TASKS.create(kw["subject"]),
-    "task_update": lambda **kw: TASKS.update(kw["task_id"], kw.get("status")),
-    "task_list":   lambda **kw: TASKS.list_all(),
-    "task_get":    lambda **kw: TASKS.get(kw["task_id"]),
-}
+```typescript
+const TOOL_HANDLERS = {
+  // ...base tools...
+  "task_create": (kw: any) => TASKS.create(kw["subject"]),
+  "task_update": (kw: any) => TASKS.update(kw["task_id"], kw["status"]),
+  "task_list":   (kw: any) => TASKS.listAll(),
+  "task_get":    (kw: any) => TASKS.get(kw["task_id"]),
+};
 ```
 
 From s12 onward, the task graph becomes the default for durable multi-step work. s03's Todo remains useful for quick single-session checklists, but anything that needs ordering, parallelism, or persistence belongs here.

@@ -101,17 +101,17 @@ worktree 注册表
 
 到当前教学代码这一步，任务记录里和车道相关的字段已经不只一个：
 
-```python
-task = {
-    "id": 12,
-    "subject": "Refactor auth flow",
-    "status": "in_progress",
-    "owner": "alice",
-    "worktree": "auth-refactor",
-    "worktree_state": "active",
-    "last_worktree": "auth-refactor",
-    "closeout": None,
-}
+```typescript
+const task = {
+    id: 12,
+    subject: "Refactor auth flow",
+    status: "in_progress",
+    owner: "alice",
+    worktree: "auth-refactor",
+    worktreeState: "active",
+    lastWorktree: "auth-refactor",
+    closeout: null,
+};
 ```
 
 这 4 个字段分别回答不同问题：
@@ -131,18 +131,18 @@ task = {
 
 ### 2. WorktreeRecord 不只是路径映射
 
-```python
-worktree = {
-    "name": "auth-refactor",
-    "path": ".worktrees/auth-refactor",
-    "branch": "wt/auth-refactor",
-    "task_id": 12,
-    "status": "active",
-    "last_entered_at": 1710000000.0,
-    "last_command_at": 1710000012.0,
-    "last_command_preview": "pytest tests/auth -q",
-    "closeout": None,
-}
+```typescript
+const worktree = {
+    name: "auth-refactor",
+    path: ".worktrees/auth-refactor",
+    branch: "wt/auth-refactor",
+    taskId: 12,
+    status: "active",
+    lastEnteredAt: 1710000000.0,
+    lastCommandAt: 1710000012.0,
+    lastCommandPreview: "pytest tests/auth -q",
+    closeout: null,
+};
 ```
 
 这里也要特别注意：
@@ -163,7 +163,7 @@ worktree 记录回答的不只是“目录在哪”，还开始回答：
 
 这一章在当前代码里，一个完整的收尾记录大致是：
 
-```python
+```typescript
 closeout = {
     "action": "keep",
     "reason": "Need follow-up review",
@@ -178,7 +178,7 @@ closeout = {
 
 ### 4. EventRecord
 
-```python
+```typescript
 event = {
     "event": "worktree.closeout.keep",
     "task_id": 12,
@@ -212,14 +212,14 @@ event = {
 1. 先创建任务
 2. 再为这个任务分配 worktree
 
-```python
+```typescript
 task = tasks.create("Refactor auth flow")
 worktrees.create("auth-refactor", task_id=task["id"])
 ```
 
 ### 第二步：创建 worktree 并写入注册表
 
-```python
+```typescript
 def create(self, name: str, task_id: int):
     path = self.root / ".worktrees" / name
     branch = f"wt/{name}"
@@ -239,7 +239,7 @@ def create(self, name: str, task_id: int):
 
 ### 第三步：同时更新任务记录，不只是写一个 `worktree`
 
-```python
+```typescript
 def bind_worktree(task_id: int, name: str):
     task = tasks.load(task_id)
     task["worktree"] = name
@@ -258,14 +258,14 @@ def bind_worktree(task_id: int, name: str):
 
 当前代码里，进入和运行已经拆成两步：
 
-```python
+```typescript
 worktree_enter("auth-refactor")
 worktree_run("auth-refactor", "pytest tests/auth -q")
 ```
 
 对应到底层，大致就是：
 
-```python
+```typescript
 def enter(self, name: str):
     self._update_entry(name, last_entered_at=time.time())
     self.events.emit("worktree.enter", ...)
@@ -274,7 +274,7 @@ def run(self, name: str, command: str):
     subprocess.run(command, cwd=worktree_path, ...)
 ```
 
-```python
+```typescript
 subprocess.run(command, cwd=worktree_path, ...)
 ```
 
@@ -301,7 +301,7 @@ subprocess.run(command, cwd=worktree_path, ...)
 
 当前更清楚的教学接口不是“分散记两个命令”，而是统一成一个 closeout 动作：
 
-```python
+```typescript
 worktree_closeout(
     name="auth-refactor",
     action="keep",   # or "remove"

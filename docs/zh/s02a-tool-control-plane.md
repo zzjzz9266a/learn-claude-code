@@ -91,7 +91,7 @@
 
 这还是最基础的结构：
 
-```python
+```typescript
 tool = {
     "name": "read_file",
     "description": "Read file contents.",
@@ -101,7 +101,7 @@ tool = {
 
 ### 2. ToolDispatchMap
 
-```python
+```typescript
 handlers = {
     "read_file": read_file,
     "write_file": write_file,
@@ -115,7 +115,7 @@ handlers = {
 
 教学版可以先做一个简化版本：
 
-```python
+```typescript
 tool_use_context = {
     "tools": handlers,
     "permission_context": {...},
@@ -138,7 +138,7 @@ tool_use_context = {
 
 更稳妥的形状是：
 
-```python
+```typescript
 result = {
     "ok": True,
     "content": "...",
@@ -160,7 +160,7 @@ result = {
 
 ### 系统 A：只有 dispatch map
 
-```python
+```typescript
 output = handlers[tool_name](**tool_input)
 ```
 
@@ -168,7 +168,7 @@ output = handlers[tool_name](**tool_input)
 
 ### 系统 B：有 ToolUseContext
 
-```python
+```typescript
 output = handlers[tool_name](tool_input, tool_use_context)
 ```
 
@@ -193,7 +193,7 @@ output = handlers[tool_name](tool_input, tool_use_context)
 
 ### 第二步：引入一个统一 context
 
-```python
+```typescript
 class ToolUseContext:
     def __init__(self):
         self.handlers = {}
@@ -206,7 +206,7 @@ class ToolUseContext:
 
 ### 第三步：让所有 handler 都能看到 context
 
-```python
+```typescript
 def run_tool(tool_name: str, tool_input: dict, ctx: ToolUseContext):
     handler = ctx.handlers[tool_name]
     return handler(tool_input, ctx)
@@ -214,7 +214,7 @@ def run_tool(tool_name: str, tool_input: dict, ctx: ToolUseContext):
 
 ### 第四步：在 router 层分不同能力来源
 
-```python
+```typescript
 def route_tool(tool_name: str, tool_input: dict, ctx: ToolUseContext):
     if tool_name.startswith("mcp__"):
         return run_mcp_tool(tool_name, tool_input, ctx)

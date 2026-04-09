@@ -118,7 +118,7 @@ runtime tasks:
 
 これは `s12` の durable task です。
 
-```python
+```typescript
 task = {
     "id": 12,
     "subject": "Implement auth module",
@@ -134,7 +134,7 @@ task = {
 
 教材版の最小形は次の程度で十分です。
 
-```python
+```typescript
 runtime_task = {
     "id": "b8k2m1qz",
     "type": "local_bash",
@@ -179,7 +179,7 @@ workflow
 
 ### Step 2: 別の runtime task manager を足す
 
-```python
+```typescript
 class RuntimeTaskManager:
     def __init__(self):
         self.tasks = {}
@@ -187,7 +187,7 @@ class RuntimeTaskManager:
 
 ### Step 3: background work 開始時に runtime task を作る
 
-```python
+```typescript
 def spawn_bash_task(command: str):
     task_id = new_runtime_id()
     runtime_tasks[task_id] = {
@@ -200,7 +200,7 @@ def spawn_bash_task(command: str):
 
 ### Step 4: 必要なら work graph へ結び戻す
 
-```python
+```typescript
 runtime_tasks[task_id]["work_graph_task_id"] = 12
 ```
 

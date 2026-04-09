@@ -120,7 +120,7 @@ Execution Lane Layer
 
 例：
 
-```python
+```typescript
 member = {
     "name": "alice",
     "role": "frontend",
@@ -146,7 +146,7 @@ member = {
 
 例：
 
-```python
+```typescript
 request = {
     "request_id": "a1b2c3d4",
     "kind": "plan_approval",
@@ -175,7 +175,7 @@ request = {
 
 例：
 
-```python
+```typescript
 task = {
     "id": 12,
     "subject": "Implement login page",
@@ -209,7 +209,7 @@ task = {
 
 例：
 
-```python
+```typescript
 runtime = {
     "id": "rt_01",
     "type": "in_process_teammate",
@@ -235,7 +235,7 @@ runtime = {
 
 例：
 
-```python
+```typescript
 worktree = {
     "name": "login-page",
     "path": ".worktrees/login-page",

@@ -55,72 +55,86 @@ Identity re-injection after compression:
 
 **Step 1.** The teammate loop has two phases: WORK and IDLE. During the work phase, the teammate calls the LLM repeatedly and executes tools. When the LLM stops calling tools (or the teammate explicitly calls the `idle` tool), it transitions to the idle phase.
 
-```python
-def _loop(self, name, role, prompt):
-    while True:
-        # -- WORK PHASE --
-        messages = [{"role": "user", "content": prompt}]
-        for _ in range(50):
-            response = client.messages.create(...)
-            if response.stop_reason != "tool_use":
-                break
-            # execute tools...
-            if idle_requested:
-                break
+```typescript
+_loop(name: string, role: string, prompt: string): void {
+  while (true) {
+    // -- WORK PHASE --
+    const messages: any[] = [{ role: "user", content: prompt }];
+    for (let i = 0; i < 50; i++) {
+      const response = await client.messages.create(...);
+      if (response.stop_reason !== "tool_use") break;
+      // execute tools...
+      if (idleRequested) break;
+    }
 
-        # -- IDLE PHASE --
-        self._set_status(name, "idle")
-        resume = self._idle_poll(name, messages)
-        if not resume:
-            self._set_status(name, "shutdown")
-            return
-        self._set_status(name, "working")
+    // -- IDLE PHASE --
+    this._setStatus(name, "idle");
+    const resume = this._idlePoll(name, messages);
+    if (!resume) {
+      this._setStatus(name, "shutdown");
+      return;
+    }
+    this._setStatus(name, "working");
+  }
+}
 ```
 
 **Step 2.** The idle phase polls for two things in a loop: inbox messages and unclaimed tasks. It checks every 5 seconds for up to 60 seconds. If a message arrives, the teammate wakes up. If an unclaimed task appears on the board, the teammate claims it and gets back to work. If neither happens within the timeout window, the teammate shuts itself down.
 
-```python
-def _idle_poll(self, name, messages):
-    for _ in range(IDLE_TIMEOUT // POLL_INTERVAL):  # 60s / 5s = 12
-        time.sleep(POLL_INTERVAL)
-        inbox = BUS.read_inbox(name)
-        if inbox:
-            messages.append({"role": "user",
-                "content": f"<inbox>{inbox}</inbox>"})
-            return True
-        unclaimed = scan_unclaimed_tasks()
-        if unclaimed:
-            claim_task(unclaimed[0]["id"], name)
-            messages.append({"role": "user",
-                "content": f"<auto-claimed>Task #{unclaimed[0]['id']}: "
-                           f"{unclaimed[0]['subject']}</auto-claimed>"})
-            return True
-    return False  # timeout -> shutdown
+```typescript
+_idlePoll(name: string, messages: any[]): boolean {
+  for (let i = 0; i < IDLE_TIMEOUT / POLL_INTERVAL; i++) {  // 60s / 5s = 12
+    sleep(POLL_INTERVAL);
+    const inbox = BUS.readInbox(name);
+    if (inbox) {
+      messages.push({
+        role: "user",
+        content: `<inbox>${inbox}</inbox>`
+      });
+      return true;
+    }
+    const unclaimed = scanUnclaimedTasks();
+    if (unclaimed.length > 0) {
+      claimTask(unclaimed[0].id, name);
+      messages.push({
+        role: "user",
+        content: `<auto-claimed>Task #${unclaimed[0].id}: ${unclaimed[0].subject}</auto-claimed>`
+      });
+      return true;
+    }
+  }
+  return false;  // timeout -> shutdown
+}
 ```
 
 **Step 3.** Task board scanning finds pending, unowned, unblocked tasks. The scan reads task files from disk and filters for tasks that are available to claim -- no owner, no blocking dependencies, and still in `pending` status.
 
-```python
-def scan_unclaimed_tasks() -> list:
-    unclaimed = []
-    for f in sorted(TASKS_DIR.glob("task_*.json")):
-        task = json.loads(f.read_text())
-        if (task.get("status") == "pending"
-                and not task.get("owner")
-                and not task.get("blockedBy")):
-            unclaimed.append(task)
-    return unclaimed
+```typescript
+function scanUnclaimedTasks(): any[] {
+  const unclaimed: any[] = [];
+  for (const f of TASKS_DIR.glob("task_*.json").sort()) {
+    const task = JSON.parse(f.readText());
+    if (task.status === "pending" && !task.owner && !task.blockedBy) {
+      unclaimed.push(task);
+    }
+  }
+  return unclaimed;
+}
 ```
 
 **Step 4.** Identity re-injection handles a subtle problem. After context compression (s06), the conversation history might shrink to just a few messages -- and the agent forgets who it is. When the message list is suspiciously short (3 or fewer messages), the harness inserts an identity block at the beginning so the agent knows its name, role, and team.
 
-```python
-if len(messages) <= 3:
-    messages.insert(0, {"role": "user",
-        "content": f"<identity>You are '{name}', role: {role}, "
-                   f"team: {team_name}. Continue your work.</identity>"})
-    messages.insert(1, {"role": "assistant",
-        "content": f"I am {name}. Continuing."})
+```typescript
+if (messages.length <= 3) {
+  messages.unshift({
+    role: "user",
+    content: `<identity>You are '${name}', role: ${role}, team: ${teamName}. Continue your work.</identity>`
+  });
+  messages.unshift({
+    role: "assistant",
+    content: `I am ${name}. Continuing.`
+  });
+}
 ```
 
 ## Read Together

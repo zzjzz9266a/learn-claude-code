@@ -93,16 +93,16 @@
 
 ### 1. TaskRecord
 
-```python
-task = {
-    "id": 1,
-    "subject": "Write parser",
-    "description": "",
-    "status": "pending",
-    "blockedBy": [],
-    "blocks": [],
-    "owner": "",
-}
+```typescript
+const task = {
+    id: 1,
+    subject: "Write parser",
+    description: "",
+    status: "pending",
+    blockedBy: [],
+    blocks: [],
+    owner: "",
+};
 ```
 
 每个字段都对应一个很实用的问题：
@@ -135,9 +135,10 @@ deleted
 
 这是本章最关键的一条判断规则：
 
-```python
-def is_ready(task: dict) -> bool:
-    return task["status"] == "pending" and not task["blockedBy"]
+```typescript
+function isReady(task: any): boolean {
+    return task.status === "pending" && task.blockedBy.length === 0;
+}
 ```
 
 如果你把这条规则讲明白，读者就会第一次真正明白：
@@ -160,20 +161,22 @@ def is_ready(task: dict) -> bool:
 
 创建任务时，直接写成一条 JSON 记录：
 
-```python
-class TaskManager:
-    def create(self, subject: str, description: str = "") -> dict:
-        task = {
-            "id": self._next_id(),
-            "subject": subject,
-            "description": description,
-            "status": "pending",
-            "blockedBy": [],
-            "blocks": [],
-            "owner": "",
-        }
-        self._save(task)
-        return task
+```typescript
+class TaskManager {
+    create(subject: string, description?: string): any {
+        const task = {
+            id: this._nextId(),
+            subject: subject,
+            description: description || "",
+            status: "pending",
+            blockedBy: [],
+            blocks: [],
+            owner: "",
+        };
+        this._save(task);
+        return task;
+    }
+}
 ```
 
 ### 第二步：把依赖关系写成双向
@@ -183,18 +186,21 @@ class TaskManager:
 - A 的 `blocks` 里有 B
 - B 的 `blockedBy` 里有 A
 
-```python
-def add_dependency(self, task_id: int, blocks_id: int):
-    task = self._load(task_id)
-    blocked = self._load(blocks_id)
+```typescript
+addDependency(taskId: number, blocksId: number): void {
+    const task = this._load(taskId);
+    const blocked = this._load(blocksId);
 
-    if blocks_id not in task["blocks"]:
-        task["blocks"].append(blocks_id)
-    if task_id not in blocked["blockedBy"]:
-        blocked["blockedBy"].append(task_id)
+    if (!task.blocks.includes(blocksId)) {
+        task.blocks.push(blocksId);
+    }
+    if (!blocked.blockedBy.includes(taskId)) {
+        blocked.blockedBy.push(taskId);
+    }
 
-    self._save(task)
-    self._save(blocked)
+    this._save(task);
+    this._save(blocked);
+}
 ```
 
 这样做的好处是：
@@ -204,16 +210,19 @@ def add_dependency(self, task_id: int, blocks_id: int):
 
 ### 第三步：完成任务时自动解锁后续任务
 
-```python
-def complete(self, task_id: int):
-    task = self._load(task_id)
-    task["status"] = "completed"
-    self._save(task)
+```typescript
+complete(taskId: number): void {
+    const task = this._load(taskId);
+    task.status = "completed";
+    this._save(task);
 
-    for other in self._all_tasks():
-        if task_id in other["blockedBy"]:
-            other["blockedBy"].remove(task_id)
-            self._save(other)
+    for (const other of this._allTasks()) {
+        if (other.blockedBy.includes(taskId)) {
+            other.blockedBy = other.blockedBy.filter(id => id !== taskId);
+            this._save(other);
+        }
+    }
+}
 ```
 
 这一步非常关键。

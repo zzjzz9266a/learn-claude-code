@@ -71,7 +71,7 @@ core
 
 ## 最小 builder
 
-```python
+```typescript
 class SystemPromptBuilder:
     def build(self) -> str:
         parts = []

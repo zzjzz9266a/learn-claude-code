@@ -138,7 +138,7 @@
 
 最小形状可以这样理解：
 
-```python
+```typescript
 params = {
     "messages": [...],
     "system_prompt": "...",
@@ -162,7 +162,7 @@ params = {
 
 最小教学版建议你把它显式做成一个结构：
 
-```python
+```typescript
 state = {
     "messages": [...],
     "tool_use_context": {...},
@@ -184,7 +184,7 @@ state = {
 
 建议你单独定义一组继续原因：
 
-```python
+```typescript
 TRANSITIONS = (
     "tool_result_continuation",
     "max_tokens_recovery",
@@ -208,7 +208,7 @@ TRANSITIONS = (
 
 ### 第一步：把外部输入和内部状态分开
 
-```python
+```typescript
 def query(params):
     state = {
         "messages": params["messages"],
@@ -223,7 +223,7 @@ def query(params):
 
 ### 第二步：每一轮先读 state，再决定如何执行
 
-```python
+```typescript
 while True:
     messages = state["messages"]
     transition = state["transition"]
@@ -235,7 +235,7 @@ while True:
 
 ### 第三步：所有“继续下一轮”的地方都写回 state
 
-```python
+```typescript
 if response.stop_reason == "tool_use":
     state["messages"] = append_tool_results(...)
     state["transition"] = "tool_result_continuation"

@@ -123,11 +123,11 @@ Preview:
 
 最小教学版建议你显式维护一份压缩状态：
 
-```python
+```typescript
 {
-    "has_compacted": False,
-    "last_summary": "",
-    "recent_files": [],
+    hasCompacted: false,
+    lastSummary: "",
+    recentFiles: [],
 }
 ```
 
@@ -154,19 +154,21 @@ Preview:
 
 ### 第一步：大工具结果先写磁盘
 
-```python
-def persist_large_output(tool_use_id: str, output: str) -> str:
-    if len(output) <= PERSIST_THRESHOLD:
-        return output
+```typescript
+function persistLargeOutput(toolUseId: string, output: string): string {
+    if (output.length <= PERSIST_THRESHOLD) {
+        return output;
+    }
 
-    stored_path = save_to_disk(tool_use_id, output)
-    preview = output[:2000]
+    const storedPath = saveToDisk(toolUseId, output);
+    const preview = output.slice(0, 2000);
     return (
-        "<persisted-output>\n"
-        f"Full output saved to: {stored_path}\n"
-        f"Preview:\n{preview}\n"
+        "<persisted-output>\n" +
+        `Full output saved to: ${storedPath}\n` +
+        `Preview:\n${preview}\n` +
         "</persisted-output>"
-    )
+    );
+}
 ```
 
 这一步的关键思想是：
@@ -175,28 +177,31 @@ def persist_large_output(tool_use_id: str, output: str) -> str:
 
 ### 第二步：旧工具结果做微压缩
 
-```python
-def micro_compact(messages: list) -> list:
-    tool_results = collect_tool_results(messages)
-    for result in tool_results[:-3]:
-        result["content"] = "[Earlier tool result omitted for brevity]"
-    return messages
+```typescript
+function microCompact(messages: any[]): any[] {
+    const toolResults = collectToolResults(messages);
+    for (const result of toolResults.slice(0, -3)) {
+        result.content = "[Earlier tool result omitted for brevity]";
+    }
+    return messages;
+}
 ```
 
 这一步不是为了优雅，而是为了防止上下文被旧结果持续霸占。
 
 ### 第三步：整体历史过长时，做一次完整压缩
 
-```python
-def compact_history(messages: list) -> list:
-    summary = summarize_conversation(messages)
+```typescript
+function compactHistory(messages: any[]): any[] {
+    const summary = summarizeConversation(messages);
     return [{
-        "role": "user",
-        "content": (
-            "This conversation was compacted for continuity.\n\n"
-            + summary
+        role: "user",
+        content: (
+            "This conversation was compacted for continuity.\n\n" +
+            summary
         ),
-    }]
+    }];
+}
 ```
 
 这里最重要的不是摘要格式多么复杂，而是你要保住这几类信息：
@@ -209,17 +214,20 @@ def compact_history(messages: list) -> list:
 
 ### 第四步：在主循环里接入压缩
 
-```python
-def agent_loop(state):
-    while True:
-        state["messages"] = micro_compact(state["messages"])
+```typescript
+async function agentLoop(state: any) {
+    while (true) {
+        state.messages = microCompact(state.messages);
 
-        if estimate_context_size(state["messages"]) > CONTEXT_LIMIT:
-            state["messages"] = compact_history(state["messages"])
-            state["has_compacted"] = True
+        if (estimateContextSize(state.messages) > CONTEXT_LIMIT) {
+            state.messages = compactHistory(state.messages);
+            state.hasCompacted = true;
+        }
 
-        response = call_model(...)
+        const response = await callModel(...);
         ...
+    }
+}
 ```
 
 ### 第五步：手动压缩和自动压缩复用同一条机制

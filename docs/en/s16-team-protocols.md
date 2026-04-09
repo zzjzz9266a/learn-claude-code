@@ -50,40 +50,43 @@ Trackers:
 
 **Step 1.** The lead initiates shutdown by generating a unique `request_id` and sending the request through the teammate's inbox. The request is tracked in a dictionary so the lead can check its status later.
 
-```python
-shutdown_requests = {}
+```typescript
+const shutdownRequests: Map<string, any> = new Map();
 
-def handle_shutdown_request(teammate: str) -> str:
-    req_id = str(uuid.uuid4())[:8]
-    shutdown_requests[req_id] = {"target": teammate, "status": "pending"}
-    BUS.send("lead", teammate, "Please shut down gracefully.",
-             "shutdown_request", {"request_id": req_id})
-    return f"Shutdown request {req_id} sent (status: pending)"
+function handleShutdownRequest(teammate: string): string {
+  const reqId = crypto.randomUUID().slice(0, 8);
+  shutdownRequests.set(reqId, { target: teammate, status: "pending" });
+  BUS.send("lead", teammate, "Please shut down gracefully.",
+    "shutdown_request", { request_id: reqId });
+  return `Shutdown request ${reqId} sent (status: pending)`;
+}
 ```
 
 **Step 2.** The teammate receives the request in its inbox and responds with approve or reject. The response carries the same `request_id` so the lead can match it to the original request -- this is the correlation that makes the protocol reliable.
 
-```python
-if tool_name == "shutdown_response":
-    req_id = args["request_id"]
-    approve = args["approve"]
-    shutdown_requests[req_id]["status"] = "approved" if approve else "rejected"
-    BUS.send(sender, "lead", args.get("reason", ""),
-             "shutdown_response",
-             {"request_id": req_id, "approve": approve})
+```typescript
+if (toolName === "shutdown_response") {
+  const reqId = args["request_id"];
+  const approve = args["approve"];
+  shutdownRequests.get(reqId).status = approve ? "approved" : "rejected";
+  BUS.send(sender, "lead", args["reason"] || "",
+    "shutdown_response",
+    { request_id: reqId, approve: approve });
+}
 ```
 
 **Step 3.** Plan approval follows the identical pattern but in the opposite direction. The teammate submits a plan (generating a `request_id`), and the lead reviews it (referencing the same `request_id` to approve or reject).
 
-```python
-plan_requests = {}
+```typescript
+const planRequests: Map<string, any> = new Map();
 
-def handle_plan_review(request_id, approve, feedback=""):
-    req = plan_requests[request_id]
-    req["status"] = "approved" if approve else "rejected"
-    BUS.send("lead", req["from"], feedback,
-             "plan_approval_response",
-             {"request_id": request_id, "approve": approve})
+function handlePlanReview(requestId: string, approve: boolean, feedback: string = ""): void {
+  const req = planRequests.get(requestId);
+  req.status = approve ? "approved" : "rejected";
+  BUS.send("lead", req.from, feedback,
+    "plan_approval_response",
+    { request_id: requestId, approve: approve });
+}
 ```
 
 In this teaching demo, one FSM shape covers both protocols. A production system might treat different protocol families differently, but the teaching version intentionally keeps one reusable template so you can see the shared structure clearly.

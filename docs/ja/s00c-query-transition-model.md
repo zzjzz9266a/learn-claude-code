@@ -114,7 +114,7 @@ final completion
 
 教材版でも次のような field は明示しておくべきです。
 
-```python
+```typescript
 state = {
     "messages": [...],
     "turn_count": 3,
@@ -138,7 +138,7 @@ state = {
 
 教材版の最小集合は次の程度で十分です。
 
-```python
+```typescript
 TRANSITIONS = (
     "tool_result_continuation",
     "max_tokens_recovery",
@@ -168,7 +168,7 @@ TRANSITIONS = (
 
 高完成度システムは単に続行するだけではなく、続行回数を制御します。
 
-```python
+```typescript
 state = {
     "max_output_tokens_recovery_count": 2,
     "has_attempted_reactive_compact": True,
@@ -187,20 +187,20 @@ state = {
 
 初心者の loop はよくこうなります。
 
-```python
+```typescript
 continue
 ```
 
 教材版は一歩進めます。
 
-```python
+```typescript
 state["transition"] = "tool_result_continuation"
 continue
 ```
 
 ### Step 2: continuation と state patch を対にする
 
-```python
+```typescript
 if response.stop_reason == "tool_use":
     state["messages"] = append_tool_results(...)
     state["turn_count"] += 1
@@ -227,7 +227,7 @@ if response.stop_reason == "max_tokens":
 
 ### Step 3: 通常継続と recovery 継続を分ける
 
-```python
+```typescript
 if should_retry_transport(error):
     time.sleep(backoff(...))
     state["transition"] = "transport_retry"

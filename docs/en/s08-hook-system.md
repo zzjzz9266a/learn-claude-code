@@ -94,20 +94,22 @@ HOOK_TOOL_OUTPUT=...  (PostToolUse only)
 
 **Step 5.** Integrate hooks into the agent loop. The integration is clean: run pre-hooks before execution, check if any blocked, execute the tool, run post-hooks, and collect any injected messages. The loop still owns control flow -- hooks only observe, block, or annotate at named moments.
 
-```python
-# Before tool execution
-pre_result = hooks.run_hooks("PreToolUse", ctx)
-if pre_result["blocked"]:
-    output = f"Blocked by hook: {pre_result['block_reason']}"
-    continue
+```typescript
+// Before tool execution
+const preResult = hooks.runHooks("PreToolUse", ctx);
+if (preResult.blocked) {
+  output = `Blocked by hook: ${preResult.blockReason}`;
+  continue;
+}
 
-# Execute tool
-output = handler(**tool_input)
+// Execute tool
+output = handler(toolInput);
 
-# After tool execution
-post_result = hooks.run_hooks("PostToolUse", ctx)
-for msg in post_result["messages"]:
-    output += f"\n[Hook note]: {msg}"
+// After tool execution
+const postResult = hooks.runHooks("PostToolUse", ctx);
+for (const msg of postResult.messages) {
+  output += `\n[Hook note]: ${msg}`;
+}
 ```
 
 ## What Changed From s07

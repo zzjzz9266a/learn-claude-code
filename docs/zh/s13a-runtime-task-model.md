@@ -117,7 +117,7 @@
 
 这就是 `s12` 里的那条 durable task。
 
-```python
+```typescript
 task = {
     "id": 12,
     "subject": "Implement auth module",
@@ -133,7 +133,7 @@ task = {
 
 教学版可以先用这个最小形状：
 
-```python
+```typescript
 runtime_task = {
     "id": "b8k2m1qz",
     "type": "local_bash",
@@ -177,7 +177,7 @@ workflow
 
 ### 第二步：单独加一个 RuntimeTaskManager
 
-```python
+```typescript
 class RuntimeTaskManager:
     def __init__(self):
         self.tasks = {}
@@ -185,7 +185,7 @@ class RuntimeTaskManager:
 
 ### 第三步：后台运行时创建 runtime task
 
-```python
+```typescript
 def spawn_bash_task(command: str):
     task_id = new_runtime_id()
     runtime_tasks[task_id] = {
@@ -198,7 +198,7 @@ def spawn_bash_task(command: str):
 
 ### 第四步：必要时把 runtime task 关联回工作图任务
 
-```python
+```typescript
 runtime_tasks[task_id]["work_graph_task_id"] = 12
 ```
 

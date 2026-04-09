@@ -104,14 +104,14 @@
 
 ### 1. HookEvent
 
-```python
-event = {
-    "name": "PreToolUse",
-    "payload": {
-        "tool_name": "bash",
-        "input": {"command": "pytest"},
+```typescript
+const event = {
+    name: "PreToolUse",
+    payload: {
+        toolName: "bash",
+        input: { command: "pytest" },
     },
-}
+};
 ```
 
 它回答的是：
@@ -121,11 +121,11 @@ event = {
 
 ### 2. HookResult
 
-```python
-result = {
-    "exit_code": 0,
-    "message": "",
-}
+```typescript
+const result = {
+    exitCode: 0,
+    message: "",
+};
 ```
 
 它回答的是：
@@ -135,10 +135,12 @@ result = {
 
 ### 3. HookRunner
 
-```python
-class HookRunner:
-    def run(self, event_name: str, payload: dict) -> dict:
+```typescript
+class HookRunner {
+    run(eventName: string, payload: any): any {
         ...
+    }
+}
 ```
 
 主循环不直接关心“每个 hook 的细节实现”。  
@@ -178,51 +180,56 @@ run_hook("PostToolUse", ...)
 
 ### 第一步：准备一个事件到处理器的映射
 
-```python
-HOOKS = {
-    "SessionStart": [on_session_start],
-    "PreToolUse": [pre_tool_guard],
-    "PostToolUse": [post_tool_log],
-}
+```typescript
+const HOOKS = {
+    "SessionStart": [onSessionStart],
+    "PreToolUse": [preToolGuard],
+    "PostToolUse": [postToolLog],
+};
 ```
 
 这里先用“一个事件对应一组处理函数”的最小结构就够了。
 
 ### 第二步：统一运行 hook
 
-```python
-def run_hooks(event_name: str, payload: dict) -> dict:
-    for handler in HOOKS.get(event_name, []):
-        result = handler(payload)
-        if result["exit_code"] in (1, 2):
-            return result
-    return {"exit_code": 0, "message": ""}
+```typescript
+function runHooks(eventName: string, payload: any): any {
+    for (const handler of HOOKS[eventName] || []) {
+        const result = handler(payload);
+        if (result.exitCode === 1 || result.exitCode === 2) {
+            return result;
+        }
+    }
+    return { exitCode: 0, message: "" };
+}
 ```
 
 教学版里先用“谁先返回阻止/注入，谁就优先”的简单规则。
 
 ### 第三步：接进主循环
 
-```python
-pre = run_hooks("PreToolUse", {
-    "tool_name": block.name,
-    "input": block.input,
-})
+```typescript
+const pre = runHooks("PreToolUse", {
+    toolName: block.name,
+    input: block.input,
+});
 
-if pre["exit_code"] == 1:
-    results.append(blocked_tool_result(pre["message"]))
-    continue
+if (pre.exitCode === 1) {
+    results.push(blockedToolResult(pre.message));
+    continue;
+}
 
-if pre["exit_code"] == 2:
-    messages.append({"role": "user", "content": pre["message"]})
+if (pre.exitCode === 2) {
+    messages.push({ role: "user", content: pre.message });
+}
 
-output = run_tool(...)
+const output = runTool(...);
 
-post = run_hooks("PostToolUse", {
-    "tool_name": block.name,
-    "input": block.input,
-    "output": output,
-})
+const post = runHooks("PostToolUse", {
+    toolName: block.name,
+    input: block.input,
+    output: output,
+});
 ```
 
 这一步最关键的不是代码量，而是心智：

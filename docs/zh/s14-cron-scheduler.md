@@ -99,16 +99,16 @@ schedule_create(...)
 
 ### 1. ScheduleRecord
 
-```python
-schedule = {
-    "id": "job_001",
-    "cron": "0 9 * * 1",
-    "prompt": "Run the weekly status report.",
-    "recurring": True,
-    "durable": True,
-    "created_at": 1710000000.0,
-    "last_fired_at": None,
-}
+```typescript
+const schedule = {
+    id: "job_001",
+    cron: "0 9 * * 1",
+    prompt: "Run the weekly status report.",
+    recurring: true,
+    durable: true,
+    createdAt: 1710000000.0,
+    lastFiredAt: null,
+};
 ```
 
 字段含义：
@@ -123,11 +123,11 @@ schedule = {
 
 ### 2. 调度通知
 
-```python
+```typescript
 {
-    "type": "scheduled_prompt",
-    "schedule_id": "job_001",
-    "prompt": "Run the weekly status report.",
+    type: "scheduled_prompt",
+    scheduleId: "job_001",
+    prompt: "Run the weekly status report.",
 }
 ```
 
@@ -141,55 +141,62 @@ schedule = {
 
 ### 第一步：允许创建一条调度记录
 
-```python
-def create(self, cron_expr: str, prompt: str, recurring: bool = True):
-    job = {
-        "id": new_id(),
-        "cron": cron_expr,
-        "prompt": prompt,
-        "recurring": recurring,
-        "created_at": time.time(),
-        "last_fired_at": None,
-    }
-    self.jobs.append(job)
-    return job
+```typescript
+create(cronExpr: string, prompt: string, recurring: boolean = true): any {
+    const job = {
+        id: newId(),
+        cron: cronExpr,
+        prompt: prompt,
+        recurring: recurring,
+        createdAt: Date.now() / 1000,
+        lastFiredAt: null,
+    };
+    this.jobs.push(job);
+    return job;
+}
 ```
 
 ### 第二步：写一个定时检查循环
 
-```python
-def check_loop(self):
-    while True:
-        now = datetime.now()
-        self.check_jobs(now)
-        time.sleep(60)
+```typescript
+checkLoop(): void {
+    while (true) {
+        const now = new Date();
+        this.checkJobs(now);
+        sleep(60);
+    }
+}
 ```
 
 最小教学版先每分钟检查一次就足够。
 
 ### 第三步：时间到了就发通知
 
-```python
-def check_jobs(self, now):
-    for job in self.jobs:
-        if cron_matches(job["cron"], now):
-            self.queue.put({
-                "type": "scheduled_prompt",
-                "schedule_id": job["id"],
-                "prompt": job["prompt"],
-            })
-            job["last_fired_at"] = now.timestamp()
+```typescript
+checkJobs(now: Date): void {
+    for (const job of this.jobs) {
+        if (cronMatches(job.cron, now)) {
+            this.queue.put({
+                type: "scheduled_prompt",
+                scheduleId: job.id,
+                prompt: job.prompt,
+            });
+            job.lastFiredAt = now.getTime() / 1000;
+        }
+    }
+}
 ```
 
 ### 第四步：主循环像处理后台通知一样处理定时通知
 
-```python
-notifications = scheduler.drain()
-for item in notifications:
-    messages.append({
-        "role": "user",
-        "content": f"[scheduled:{item['schedule_id']}] {item['prompt']}",
-    })
+```typescript
+const notifications = scheduler.drain();
+for (const item of notifications) {
+    messages.push({
+        role: "user",
+        content: `[scheduled:${item.scheduleId}] ${item.prompt}`,
+    });
+}
 ```
 
 这样一来，定时任务最终还是由模型接手继续做。

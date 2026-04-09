@@ -74,7 +74,7 @@ rule は、
 
 最小形なら次のような record で表せます。
 
-```python
+```typescript
 {
     "tool": "bash",
     "content": "sudo *",
@@ -193,7 +193,7 @@ deny と mode を抜けたあとで、
 
 ### 1. PermissionRule
 
-```python
+```typescript
 PermissionRule = {
     "tool": str,
     "behavior": "allow" | "deny" | "ask",
@@ -211,7 +211,7 @@ PermissionRule = {
 
 ### 2. Permission Mode
 
-```python
+```typescript
 mode = "default" | "plan" | "auto"
 ```
 
@@ -219,7 +219,7 @@ mode = "default" | "plan" | "auto"
 
 ### 3. PermissionDecision
 
-```python
+```typescript
 {
     "behavior": "allow" | "deny" | "ask",
     "reason": "why this decision was made",
@@ -238,7 +238,7 @@ mode = "default" | "plan" | "auto"
 
 ### 第 1 段階: 判定関数を書く
 
-```python
+```typescript
 def check_permission(tool_name: str, tool_input: dict) -> dict:
     # 1. deny rules
     for rule in deny_rules:
@@ -270,7 +270,7 @@ def check_permission(tool_name: str, tool_input: dict) -> dict:
 
 permission は tool request が来たあと、handler を呼ぶ前に入ります。
 
-```python
+```typescript
 decision = perms.check(tool_name, tool_input)
 
 if decision["behavior"] == "deny":

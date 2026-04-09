@@ -124,7 +124,7 @@ The shortest correct summary is:
 
 This is the durable task from `s12`.
 
-```python
+```typescript
 task = {
     "id": 12,
     "subject": "Implement auth module",
@@ -140,7 +140,7 @@ task = {
 
 A minimal teaching shape can look like this:
 
-```python
+```typescript
 runtime_task = {
     "id": "b8k2m1qz",
     "type": "local_bash",
@@ -185,7 +185,7 @@ Do not overload it.
 
 ### Step 2: add a separate runtime task manager
 
-```python
+```typescript
 class RuntimeTaskManager:
     def __init__(self):
         self.tasks = {}
@@ -193,7 +193,7 @@ class RuntimeTaskManager:
 
 ### Step 3: create runtime tasks when background work starts
 
-```python
+```typescript
 def spawn_bash_task(command: str):
     task_id = new_runtime_id()
     runtime_tasks[task_id] = {
@@ -206,7 +206,7 @@ def spawn_bash_task(command: str):
 
 ### Step 4: optionally link runtime execution back to the work graph
 
-```python
+```typescript
 runtime_tasks[task_id]["work_graph_task_id"] = 12
 ```
 

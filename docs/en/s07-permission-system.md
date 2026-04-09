@@ -56,60 +56,72 @@ execute (or reject)
 
 **Step 2.** Set up deny and allow rules with pattern matching. Rules are checked in order -- first match wins. Deny rules catch dangerous patterns that should never execute, regardless of mode. Allow rules let known-safe operations pass without asking.
 
-```python
-rules = [
-    # Always deny dangerous patterns
-    {"tool": "bash", "content": "rm -rf /", "behavior": "deny"},
-    {"tool": "bash", "content": "sudo *",   "behavior": "deny"},
-    # Allow reading anything
-    {"tool": "read_file", "path": "*", "behavior": "allow"},
-]
+```typescript
+const rules = [
+  // Always deny dangerous patterns
+  { tool: "bash", content: "rm -rf /", behavior: "deny" },
+  { tool: "bash", content: "sudo *",   behavior: "deny" },
+  // Allow reading anything
+  { tool: "read_file", path: "*", behavior: "allow" },
+];
 ```
 
 When the user answers "always" at the interactive prompt, a permanent allow rule is added at runtime.
 
 **Step 3.** Implement the four-stage check. This is the core of the permission system. Notice that deny rules run first and cannot be bypassed -- this is intentional. No matter what mode you are in or what allow rules exist, a deny rule always wins.
 
-```python
-def check(self, tool_name, tool_input):
-    # Step 1: Deny rules (bypass-immune, always checked first)
-    for rule in self.rules:
-        if rule["behavior"] == "deny" and self._matches(rule, ...):
-            return {"behavior": "deny", "reason": "..."}
+```typescript
+function check(toolName: string, toolInput: any): any {
+  // Step 1: Deny rules (bypass-immune, always checked first)
+  for (const rule of this.rules) {
+    if (rule.behavior === "deny" && this._matches(rule, ...)) {
+      return { behavior: "deny", reason: "..." };
+    }
+  }
 
-    # Step 2: Mode-based decisions
-    if self.mode == "plan" and tool_name in WRITE_TOOLS:
-        return {"behavior": "deny", "reason": "Plan mode: writes blocked"}
-    if self.mode == "auto" and tool_name in READ_ONLY_TOOLS:
-        return {"behavior": "allow", "reason": "Auto: read-only approved"}
+  // Step 2: Mode-based decisions
+  if (this.mode === "plan" && WRITE_TOOLS.includes(toolName)) {
+    return { behavior: "deny", reason: "Plan mode: writes blocked" };
+  }
+  if (this.mode === "auto" && READ_ONLY_TOOLS.includes(toolName)) {
+    return { behavior: "allow", reason: "Auto: read-only approved" };
+  }
 
-    # Step 3: Allow rules
-    for rule in self.rules:
-        if rule["behavior"] == "allow" and self._matches(rule, ...):
-            return {"behavior": "allow", "reason": "..."}
+  // Step 3: Allow rules
+  for (const rule of this.rules) {
+    if (rule.behavior === "allow" && this._matches(rule, ...)) {
+      return { behavior: "allow", reason: "..." };
+    }
+  }
 
-    # Step 4: Fall through to ask user
-    return {"behavior": "ask", "reason": "..."}
+  // Step 4: Fall through to ask user
+  return { behavior: "ask", reason: "..." };
+}
 ```
 
 **Step 4.** Integrate the permission check into the agent loop. Every tool call now goes through the pipeline before execution. The result is one of three outcomes: denied (with a reason), allowed (silently), or asked (interactively).
 
-```python
-for block in response.content:
-    if block.type == "tool_use":
-        decision = perms.check(block.name, block.input)
+```typescript
+for (const block of response.content) {
+  if (block.type === "tool_use") {
+    const decision = perms.check(block.name, block.input);
 
-        if decision["behavior"] == "deny":
-            output = f"Permission denied: {decision['reason']}"
-        elif decision["behavior"] == "ask":
-            if perms.ask_user(block.name, block.input):
-                output = handler(**block.input)
-            else:
-                output = "Permission denied by user"
-        else:  # allow
-            output = handler(**block.input)
+    let output: string;
+    if (decision.behavior === "deny") {
+      output = `Permission denied: ${decision.reason}`;
+    } else if (decision.behavior === "ask") {
+      if (perms.askUser(block.name, block.input)) {
+        output = handler(block.input);
+      } else {
+        output = "Permission denied by user";
+      }
+    } else {  // allow
+      output = handler(block.input);
+    }
 
-        results.append({"type": "tool_result", ...})
+    results.push({ type: "tool_result", ... });
+  }
+}
 ```
 
 **Step 5.** Add denial tracking as a simple circuit breaker. The `PermissionManager` tracks consecutive denials. After 3 in a row, it suggests switching to plan mode -- this prevents the agent from repeatedly hitting the same wall and wasting turns.

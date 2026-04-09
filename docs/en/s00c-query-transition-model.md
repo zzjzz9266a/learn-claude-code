@@ -119,7 +119,7 @@ The real lesson is:
 
 Even a teaching implementation should carry an explicit transition field:
 
-```python
+```typescript
 state = {
     "messages": [...],
     "turn_count": 3,
@@ -141,7 +141,7 @@ It tells you:
 
 A minimal teaching set can look like this:
 
-```python
+```typescript
 TRANSITIONS = (
     "tool_result_continuation",
     "max_tokens_recovery",
@@ -173,7 +173,7 @@ High-completion systems do not just continue. They limit continuation.
 
 Typical fields look like:
 
-```python
+```typescript
 state = {
     "max_output_tokens_recovery_count": 2,
     "has_attempted_reactive_compact": True,
@@ -190,20 +190,20 @@ The principle is:
 
 Many beginner loops still look like this:
 
-```python
+```typescript
 continue
 ```
 
 Move one step forward:
 
-```python
+```typescript
 state["transition"] = "tool_result_continuation"
 continue
 ```
 
 ### Step 2: pair each continuation with its state patch
 
-```python
+```typescript
 if response.stop_reason == "tool_use":
     state["messages"] = append_tool_results(...)
     state["turn_count"] += 1
@@ -228,7 +228,7 @@ The important part is:
 
 ### Step 3: separate normal progress from recovery
 
-```python
+```typescript
 if should_retry_transport(error):
     time.sleep(backoff(...))
     state["transition"] = "transport_retry"

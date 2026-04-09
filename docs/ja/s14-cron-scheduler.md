@@ -72,7 +72,7 @@ time checker が定期的に一致判定
 
 ### 1. schedule record
 
-```python
+```typescript
 schedule = {
     "id": "job_001",
     "cron": "0 9 * * 1",
@@ -86,7 +86,7 @@ schedule = {
 
 ### 2. scheduled notification
 
-```python
+```typescript
 {
     "type": "scheduled_prompt",
     "schedule_id": "job_001",
@@ -100,7 +100,7 @@ schedule = {
 
 ## 最小実装
 
-```python
+```typescript
 def create(self, cron_expr: str, prompt: str, recurring: bool = True):
     job = {
         "id": new_id(),
@@ -114,7 +114,7 @@ def create(self, cron_expr: str, prompt: str, recurring: bool = True):
     return job
 ```
 
-```python
+```typescript
 def check_loop(self):
     while True:
         now = datetime.now()
@@ -122,7 +122,7 @@ def check_loop(self):
         time.sleep(60)
 ```
 
-```python
+```typescript
 def check_jobs(self, now):
     for job in self.jobs:
         if cron_matches(job["cron"], now):
@@ -136,7 +136,7 @@ def check_jobs(self, now):
 
 最後に主ループへ戻します。
 
-```python
+```typescript
 notifications = scheduler.drain()
 for item in notifications:
     messages.append({

@@ -87,7 +87,7 @@ Query State 初始化
 
 最小可以理解成：
 
-```python
+```typescript
 query_state = {
     "messages": [{"role": "user", "content": user_text}],
     "turn_count": 1,

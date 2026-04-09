@@ -115,7 +115,7 @@ system prompt 适合放：
 
 ### 1. SystemPromptBlock
 
-```python
+```typescript
 block = {
     "text": "...",
     "cache_scope": None,
@@ -129,7 +129,7 @@ block = {
 
 ### 2. PromptParts
 
-```python
+```typescript
 parts = {
     "core": "...",
     "tools": "...",
@@ -142,7 +142,7 @@ parts = {
 
 ### 3. NormalizedMessage
 
-```python
+```typescript
 message = {
     "role": "user" | "assistant",
     "content": [...],
@@ -159,7 +159,7 @@ message = {
 
 ### 4. ReminderMessage
 
-```python
+```typescript
 reminder = {
     "role": "system",
     "content": "Current mode: plan",
@@ -179,7 +179,7 @@ reminder = {
 
 ### 第二步：把消息输入做成独立管道
 
-```python
+```typescript
 def build_messages(raw_messages, attachments, reminders):
     messages = normalize_messages(raw_messages)
     messages = attach_memory(messages, attachments)
@@ -189,7 +189,7 @@ def build_messages(raw_messages, attachments, reminders):
 
 ### 第三步：在最后一层统一生成 API payload
 
-```python
+```typescript
 payload = {
     "system": build_system_prompt(),
     "messages": build_messages(...),

@@ -122,7 +122,7 @@ Two upgrades matter most:
 
 A minimal teaching batch can look like:
 
-```python
+```typescript
 batch = {
     "is_concurrency_safe": True,
     "blocks": [tool_use_1, tool_use_2, tool_use_3],
@@ -138,7 +138,7 @@ The point is simple:
 
 If you want a higher-completion execution layer, track each tool explicitly:
 
-```python
+```typescript
 tracked_tool = {
     "id": "toolu_01",
     "name": "read_file",
@@ -163,7 +163,7 @@ Tool execution may produce more than one final result.
 
 A minimal update can be treated as:
 
-```python
+```typescript
 update = {
     "message": maybe_message,
     "new_context": current_context,
@@ -189,7 +189,7 @@ The safer strategy is:
 
 For example:
 
-```python
+```typescript
 queued_context_modifiers = {
     "toolu_01": [modify_ctx_a],
     "toolu_02": [modify_ctx_b],
@@ -200,14 +200,14 @@ queued_context_modifiers = {
 
 ### Step 1: classify concurrency safety
 
-```python
+```typescript
 def is_concurrency_safe(tool_name: str, tool_input: dict) -> bool:
     return tool_name in {"read_file", "search_files"}
 ```
 
 ### Step 2: partition before execution
 
-```python
+```typescript
 batches = partition_tool_calls(tool_uses)
 
 for batch in batches:
@@ -219,7 +219,7 @@ for batch in batches:
 
 ### Step 3: let concurrent batches emit progress
 
-```python
+```typescript
 for update in run_concurrently(...):
     if update.get("message"):
         yield update["message"]
@@ -227,7 +227,7 @@ for update in run_concurrently(...):
 
 ### Step 4: merge context in stable order
 
-```python
+```typescript
 queued_modifiers = {}
 
 for update in concurrent_updates:
@@ -265,7 +265,7 @@ partition by concurrency safety
 
 In a tiny demo:
 
-```python
+```typescript
 handlers[tool_name](tool_input)
 ```
 

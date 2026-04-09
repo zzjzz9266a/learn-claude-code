@@ -179,8 +179,8 @@ The user explicitly prefers tabs over spaces when editing source files.
 
 ### 第一步：定义 memory 类型
 
-```python
-MEMORY_TYPES = ("user", "feedback", "project", "reference")
+```typescript
+const MEMORY_TYPES = ["user", "feedback", "project", "reference"];
 ```
 
 ### 第二步：写一个 `save_memory` 工具
@@ -194,11 +194,12 @@ MEMORY_TYPES = ("user", "feedback", "project", "reference")
 
 ### 第三步：每条 memory 独立落盘
 
-```python
-def save_memory(name, description, mem_type, content):
-    path = memory_dir / f"{safe_name}.md"
-    path.write_text(frontmatter + content)
-    rebuild_index()
+```typescript
+function saveMemory(name: string, description: string, memType: string, content: string): void {
+    const path = memoryDir / `${safeName}.md`;
+    path.writeText(frontmatter + content);
+    rebuildIndex();
+}
 ```
 
 ### 第四步：会话开始时重新加载

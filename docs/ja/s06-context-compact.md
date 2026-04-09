@@ -50,7 +50,7 @@ continue    [Lever 2: auto_compact]
 
 0. **レバー 0 -- persisted-output**: ツール出力がサイズ閾値を超えた場合、ディスクに書き込みプレビューマーカーに置換する。巨大な出力がコンテキストウィンドウに入るのを防ぐ。
 
-```python
+```typescript
 PERSIST_OUTPUT_TRIGGER_CHARS_DEFAULT = 50000
 PERSIST_OUTPUT_TRIGGER_CHARS_BASH = 30000   # bashはより低い閾値を使用
 
@@ -70,7 +70,7 @@ def maybe_persist_output(tool_use_id, output, trigger_chars=None):
 
 1. **レバー 1 -- micro_compact**: 各LLM呼び出しの前に、古いツール結果をプレースホルダーに置換する。`read_file`の結果は参照資料として保持する。
 
-```python
+```typescript
 PRESERVE_RESULT_TOOLS = {"read_file"}
 
 def micro_compact(messages: list) -> list:
@@ -86,7 +86,7 @@ def micro_compact(messages: list) -> list:
 
 2. **レバー 2 -- auto_compact**: トークンが閾値を超えたら、完全なトランスクリプトをディスクに保存し、LLMに要約を依頼する。
 
-```python
+```typescript
 def auto_compact(messages: list) -> list:
     transcript_path = TRANSCRIPT_DIR / f"transcript_{int(time.time())}.jsonl"
     with open(transcript_path, "w") as f:
@@ -108,7 +108,7 @@ def auto_compact(messages: list) -> list:
 
 4. ループが4つのレバーすべてを統合する:
 
-```python
+```typescript
 def agent_loop(messages: list):
     while True:
         micro_compact(messages)                        # Lever 1

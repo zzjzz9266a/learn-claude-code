@@ -114,11 +114,11 @@
 
 最小条目可以长这样：
 
-```python
+```typescript
 {
-    "content": "Read the failing test",
-    "status": "pending" | "in_progress" | "completed",
-    "activeForm": "Reading the failing test",
+    content: "Read the failing test",
+    status: "pending" | "in_progress" | "completed",
+    activeForm: "Reading the failing test",
 }
 ```
 
@@ -132,10 +132,10 @@
 
 除了计划条目本身，还应该有一点最小运行状态：
 
-```python
+```typescript
 {
-    "items": [...],
-    "rounds_since_update": 0,
+    items: [...],
+    rounds_since_update: 0,
 }
 ```
 
@@ -160,73 +160,80 @@
 
 ### 第一步：准备一个计划管理器
 
-```python
-class TodoManager:
-    def __init__(self):
-        self.items = []
+```typescript
+class TodoManager {
+    items: any[] = [];
+}
 ```
 
 ### 第二步：允许模型整体更新当前计划
 
-```python
-def update(self, items: list) -> str:
-    validated = []
-    in_progress_count = 0
+```typescript
+update(items: any[]): string {
+    const validated: any[] = [];
+    let in_progress_count = 0;
 
-    for item in items:
-        status = item.get("status", "pending")
-        if status == "in_progress":
-            in_progress_count += 1
-        validated.append({
-            "content": item["content"],
-            "status": status,
-            "activeForm": item.get("activeForm", ""),
-        })
+    for (const item of items) {
+        const status = item.status || "pending";
+        if (status === "in_progress") {
+            in_progress_count++;
+        }
+        validated.push({
+            content: item.content,
+            status: status,
+            activeForm: item.activeForm || "",
+        });
+    }
 
-    if in_progress_count > 1:
-        raise ValueError("Only one item can be in_progress")
+    if (in_progress_count > 1) {
+        throw new Error("Only one item can be in_progress");
+    }
 
-    self.items = validated
-    return self.render()
+    this.items = validated;
+    return this.render();
+}
 ```
 
 教学版让模型“整份重写”当前计划，比做一堆局部增删改更容易理解。
 
 ### 第三步：把计划渲染成可读文本
 
-```python
-def render(self) -> str:
-    lines = []
-    for item in self.items:
-        marker = {
+```typescript
+render(): string {
+    const lines: string[] = [];
+    for (const item of this.items) {
+        const marker: Record<string, string> = {
             "pending": "[ ]",
             "in_progress": "[>]",
             "completed": "[x]",
-        }[item["status"]]
-        lines.append(f"{marker} {item['content']}")
-    return "\n".join(lines)
+        }[item.status];
+        lines.push(`${marker} ${item.content}`);
+    }
+    return lines.join("\n");
+}
 ```
 
 ### 第四步：把 `todo` 接成一个工具
 
-```python
-TOOL_HANDLERS = {
-    "read_file": run_read,
-    "write_file": run_write,
-    "edit_file": run_edit,
-    "bash": run_bash,
-    "todo": lambda **kw: TODO.update(kw["items"]),
-}
+```typescript
+const TOOL_HANDLERS = {
+    read_file: run_read,
+    write_file: run_write,
+    edit_file: run_edit,
+    bash: run_bash,
+    todo: (kw: any) => TODO.update(kw["items"]),
+};
 ```
 
 ### 第五步：如果连续几轮没更新计划，就提醒
 
-```python
-if rounds_since_update >= 3:
-    results.insert(0, {
-        "type": "text",
-        "text": "<reminder>Refresh your plan before continuing.</reminder>",
-    })
+```typescript
+if (rounds_since_update >= 3) {
+    results.unshift({
+        type: "text",
+        text: "<reminder>Refresh your plan before continuing.</reminder>",
+    });
+}
 ```
 
 这一步的核心意义不是“催促”本身，而是：

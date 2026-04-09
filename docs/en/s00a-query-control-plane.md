@@ -123,7 +123,7 @@ They are **process-control state**.
 
 External input passed into the query engine:
 
-```python
+```typescript
 params = {
     "messages": [...],
     "system_prompt": "...",
@@ -137,7 +137,7 @@ params = {
 
 Mutable state that changes across turns:
 
-```python
+```typescript
 state = {
     "messages": [...],
     "tool_use_context": {...},
@@ -153,7 +153,7 @@ state = {
 
 An explicit reason for continuing:
 
-```python
+```typescript
 TRANSITIONS = (
     "tool_result_continuation",
     "max_tokens_recovery",
@@ -168,7 +168,7 @@ This is not ceremony. It makes logs, testing, debugging, and teaching much clear
 
 ### 1. Split entry params from live state
 
-```python
+```typescript
 def query(params):
     state = {
         "messages": params["messages"],
@@ -180,7 +180,7 @@ def query(params):
 
 ### 2. Let every continue-site patch state explicitly
 
-```python
+```typescript
 state["transition"] = "tool_result_continuation"
 state["turn_count"] += 1
 ```

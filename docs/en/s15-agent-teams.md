@@ -45,67 +45,91 @@ Communication:
 
 **Step 1.** `TeammateManager` maintains `config.json` with the team roster. It tracks every teammate's name, role, and current status.
 
-```python
-class TeammateManager:
-    def __init__(self, team_dir: Path):
-        self.dir = team_dir
-        self.dir.mkdir(exist_ok=True)
-        self.config_path = self.dir / "config.json"
-        self.config = self._load_config()
-        self.threads = {}
+```typescript
+class TeammateManager {
+  private dir: Path;
+  private configPath: Path;
+  private config: any;
+  private threads: Map<string, Thread>;
+
+  constructor(teamDir: Path) {
+    this.dir = teamDir;
+    this.dir.mkdir({ exist_ok: true });
+    this.configPath = this.dir / "config.json";
+    this.config = this._loadConfig();
+    this.threads = new Map();
+  }
+}
 ```
 
 **Step 2.** `spawn()` creates a teammate entry in the roster and starts its agent loop in a separate thread. From this point on, the teammate runs independently -- it has its own conversation history, its own tool calls, and its own LLM interactions.
 
-```python
-def spawn(self, name: str, role: str, prompt: str) -> str:
-    member = {"name": name, "role": role, "status": "working"}
-    self.config["members"].append(member)
-    self._save_config()
-    thread = threading.Thread(
-        target=self._teammate_loop,
-        args=(name, role, prompt), daemon=True)
-    thread.start()
-    return f"Spawned teammate '{name}' (role: {role})"
+```typescript
+spawn(name: string, role: string, prompt: string): string {
+  const member = { name: name, role: role, status: "working" };
+  this.config.members.push(member);
+  this._saveConfig();
+  const thread = new Thread(
+    () => this._teammateLoop(name, role, prompt),
+    { daemon: true }
+  );
+  thread.start();
+  return `Spawned teammate '${name}' (role: ${role})`;
+}
 ```
 
 **Step 3.** `MessageBus` provides append-only JSONL inboxes. `send()` appends a single JSON line to the recipient's file; `read_inbox()` reads all accumulated messages and then empties the file ("drains" it). The storage format is intentionally simple -- the teaching focus here is the mailbox boundary, not storage cleverness.
 
-```python
-class MessageBus:
-    def send(self, sender, to, content, msg_type="message", extra=None):
-        msg = {"type": msg_type, "from": sender,
-               "content": content, "timestamp": time.time()}
-        if extra:
-            msg.update(extra)
-        with open(self.dir / f"{to}.jsonl", "a") as f:
-            f.write(json.dumps(msg) + "\n")
+```typescript
+class MessageBus {
+  send(sender: string, to: string, content: string, msgType: string = "message", extra?: any): void {
+    const msg: any = {
+      type: msgType,
+      from: sender,
+      content: content,
+      timestamp: Date.now() / 1000
+    };
+    if (extra) {
+      Object.assign(msg, extra);
+    }
+    const f = (this.dir / `${to}.jsonl`).open("a");
+    f.write(JSON.stringify(msg) + "\n");
+    f.close();
+  }
 
-    def read_inbox(self, name):
-        path = self.dir / f"{name}.jsonl"
-        if not path.exists(): return "[]"
-        msgs = [json.loads(l) for l in path.read_text().strip().splitlines() if l]
-        path.write_text("")  # drain
-        return json.dumps(msgs, indent=2)
+  readInbox(name: string): string {
+    const path = this.dir / `${name}.jsonl`;
+    if (!path.exists()) return "[]";
+    const msgs = path.readText().trim().split("\n").filter(l => l).map(l => JSON.parse(l));
+    path.writeText("");  // drain
+    return JSON.stringify(msgs, null, 2);
+  }
+}
 ```
 
 **Step 4.** Each teammate checks its inbox before every LLM call. Any received messages get injected into the conversation context so the model can see and respond to them.
 
-```python
-def _teammate_loop(self, name, role, prompt):
-    messages = [{"role": "user", "content": prompt}]
-    for _ in range(50):
-        inbox = BUS.read_inbox(name)
-        if inbox != "[]":
-            messages.append({"role": "user",
-                "content": f"<inbox>{inbox}</inbox>"})
-            messages.append({"role": "assistant",
-                "content": "Noted inbox messages."})
-        response = client.messages.create(...)
-        if response.stop_reason != "tool_use":
-            break
-        # execute tools, append results...
-    self._find_member(name)["status"] = "idle"
+```typescript
+_teammateLoop(name: string, role: string, prompt: string): void {
+  const messages: any[] = [{ role: "user", content: prompt }];
+  for (let i = 0; i < 50; i++) {
+    const inbox = BUS.readInbox(name);
+    if (inbox !== "[]") {
+      messages.push({
+        role: "user",
+        content: `<inbox>${inbox}</inbox>`
+      });
+      messages.push({
+        role: "assistant",
+        content: "Noted inbox messages."
+      });
+    }
+    const response = await client.messages.create(...);
+    if (response.stop_reason !== "tool_use") break;
+    // execute tools, append results...
+  }
+  this._findMember(name).status = "idle";
+}
 ```
 
 ## Read Together

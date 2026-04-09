@@ -137,7 +137,7 @@ LLM call
 
 ### 1. Recovery State
 
-```python
+```typescript
 recovery_state = {
     "continuation_attempts": 0,
     "compact_attempts": 0,
@@ -152,7 +152,7 @@ recovery_state = {
 
 ### 2. Recovery Decision
 
-```python
+```typescript
 {
     "kind": "continue" | "compact" | "backoff" | "fail",
     "reason": "why this branch was chosen",
@@ -169,7 +169,7 @@ recovery_state = {
 
 ### 3. Continuation Message
 
-```python
+```typescript
 CONTINUE_MESSAGE = (
     "Output limit hit. Continue directly from where you stopped. "
     "Do not restart or repeat."
@@ -190,7 +190,7 @@ CONTINUE_MESSAGE = (
 
 ### 第 1 段階: recovery chooser を作る
 
-```python
+```typescript
 def choose_recovery(stop_reason: str | None, error_text: str | None) -> dict:
     if stop_reason == "max_tokens":
         return {"kind": "continue", "reason": "output truncated"}
@@ -214,7 +214,7 @@ def choose_recovery(stop_reason: str | None, error_text: str | None) -> dict:
 
 ### 第 2 段階: main loop に差し込む
 
-```python
+```typescript
 while True:
     try:
         response = client.messages.create(...)
@@ -266,7 +266,7 @@ while True:
 
 最小形はこうです。
 
-```python
+```typescript
 if response.stop_reason == "max_tokens":
     if state["continuation_attempts"] >= 3:
         return "Error: output recovery exhausted"
@@ -293,7 +293,7 @@ compact は、
 
 最小例:
 
-```python
+```typescript
 def auto_compact(messages: list) -> list:
     summary = summarize_messages(messages)
     return [{
@@ -319,7 +319,7 @@ def auto_compact(messages: list) -> list:
 
 考え方は単純です。
 
-```python
+```typescript
 if decision["kind"] == "backoff":
     if state["transport_attempts"] >= 3:
         break

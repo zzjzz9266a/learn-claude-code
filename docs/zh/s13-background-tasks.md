@@ -93,15 +93,15 @@
 
 ### 1. RuntimeTaskRecord
 
-```python
-task = {
-    "id": "a1b2c3d4",
-    "command": "pytest",
-    "status": "running",
-    "started_at": 1710000000.0,
-    "result_preview": "",
-    "output_file": "",
-}
+```typescript
+const task = {
+    id: "a1b2c3d4",
+    command: "pytest",
+    status: "running",
+    startedAt: 1710000000.0,
+    resultPreview: "",
+    outputFile: "",
+};
 ```
 
 这些字段分别表示：
@@ -129,13 +129,13 @@ task = {
 
 ### 2. Notification
 
-```python
-notification = {
-    "type": "background_completed",
-    "task_id": "a1b2c3d4",
-    "status": "completed",
-    "preview": "tests passed",
-}
+```typescript
+const notification = {
+    type: "background_completed",
+    taskId: "a1b2c3d4",
+    status: "completed",
+    preview: "tests passed",
+};
 ```
 
 通知只负责做一件事：
@@ -148,12 +148,12 @@ notification = {
 
 ### 第一步：登记后台任务
 
-```python
-class BackgroundManager:
-    def __init__(self):
-        self.tasks = {}
-        self.notifications = []
-        self.lock = threading.Lock()
+```typescript
+class BackgroundManager {
+    private tasks = new Map<string, any>();
+    private notifications: any[] = [];
+    private lock = new Mutex();
+}
 ```
 
 这里最少要有两块状态：
@@ -168,22 +168,22 @@ class BackgroundManager:
 
 > 同一个程序里，另一条可以独立往前跑的执行线。
 
-```python
-def run(self, command: str) -> str:
-    task_id = new_id()
-    self.tasks[task_id] = {
-        "id": task_id,
-        "command": command,
-        "status": "running",
-    }
+```typescript
+run(command: string): string {
+    const taskId = newId();
+    this.tasks.set(taskId, {
+        id: taskId,
+        command: command,
+        status: "running",
+    });
 
-    thread = threading.Thread(
-        target=self._execute,
-        args=(task_id, command),
-        daemon=True,
-    )
-    thread.start()
-    return task_id
+    const thread = new Thread(
+        () => this._execute(taskId, command),
+        { daemon: true }
+    );
+    thread.start();
+    return taskId;
+}
 ```
 
 这一步最重要的不是线程本身，而是：
@@ -192,24 +192,35 @@ def run(self, command: str) -> str:
 
 ### 第三步：完成后写通知
 
-```python
-def _execute(self, task_id: str, command: str):
-    try:
-        result = subprocess.run(..., timeout=300)
-        status = "completed"
-        preview = (result.stdout + result.stderr)[:500]
-    except subprocess.TimeoutExpired:
-        status = "timeout"
-        preview = "command timed out"
+```typescript
+async _execute(taskId: string, command: string): Promise<void> {
+    let status: string;
+    let preview: string;
 
-    with self.lock:
-        self.tasks[task_id]["status"] = status
-        self.notifications.append({
-            "type": "background_completed",
-            "task_id": task_id,
-            "status": status,
-            "preview": preview,
-        })
+    try {
+        const result = await subprocess.run(..., { timeout: 300 });
+        status = "completed";
+        preview = (result.stdout + result.stderr).slice(0, 500);
+    } catch (e) {
+        if (e instanceof TimeoutExpired) {
+            status = "timeout";
+            preview = "command timed out";
+        }
+    }
+
+    this.lock.acquire();
+    try {
+        this.tasks.get(taskId).status = status;
+        this.notifications.push({
+            type: "background_completed",
+            taskId: taskId,
+            status: status,
+            preview: preview,
+        });
+    } finally {
+        this.lock.release();
+    }
+}
 ```
 
 这里体现的思想很重要：
@@ -218,17 +229,16 @@ def _execute(self, task_id: str, command: str):
 
 ### 第四步：下一轮前排空通知
 
-```python
-def before_model_call(messages: list):
-    notifications = bg.drain_notifications()
-    if not notifications:
-        return
+```typescript
+function beforeModelCall(messages: any[]): void {
+    const notifications = bg.drainNotifications();
+    if (!notifications.length) return;
 
-    text = "\n".join(
-        f"[bg:{n['task_id']}] {n['status']} - {n['preview']}"
-        for n in notifications
-    )
-    messages.append({"role": "user", "content": text})
+    const text = notifications
+        .map(n => `[bg:${n.taskId}] ${n.status} - ${n.preview}`)
+        .join("\n");
+    messages.push({ role: "user", content: text });
+}
 ```
 
 这样模型在下一轮就会知道：

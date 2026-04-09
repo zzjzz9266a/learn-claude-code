@@ -122,7 +122,7 @@ tool_result を戻す
 
 query に入るときの外部入力です。
 
-```python
+```typescript
 params = {
     "messages": [...],
     "system_prompt": "...",
@@ -140,7 +140,7 @@ params = {
 
 query の途中で変わり続ける制御状態です。
 
-```python
+```typescript
 state = {
     "messages": [...],
     "tool_use_context": {...},
@@ -164,7 +164,7 @@ state = {
 
 続行理由は文字列でも enum でもよいですが、明示する方がよいです。
 
-```python
+```typescript
 TRANSITIONS = (
     "tool_result_continuation",
     "max_tokens_recovery",
@@ -186,7 +186,7 @@ TRANSITIONS = (
 
 ### 1. 外部入力と内部状態を分ける
 
-```python
+```typescript
 def query(params):
     state = {
         "messages": params["messages"],
@@ -200,14 +200,14 @@ def query(params):
 
 ### 2. 各ターンで state を読んで実行する
 
-```python
+```typescript
 while True:
     response = call_model(...)
 ```
 
 ### 3. 続行時は必ず state に理由を書き戻す
 
-```python
+```typescript
 if response.stop_reason == "tool_use":
     state["messages"] = append_tool_results(...)
     state["transition"] = "tool_result_continuation"

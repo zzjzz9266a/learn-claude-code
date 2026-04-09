@@ -115,7 +115,7 @@ LLM
 
 最小教学版里，可以先把消息理解成：
 
-```python
+```typescript
 {"role": "user", "content": "..."}
 {"role": "assistant", "content": [...]}
 ```
@@ -128,7 +128,7 @@ LLM
 
 当工具执行完后，你要把它包装回消息流：
 
-```python
+```typescript
 {
     "type": "tool_result",
     "tool_use_id": "...",
@@ -146,7 +146,7 @@ LLM
 
 最小也应该显式收拢出一个循环状态：
 
-```python
+```typescript
 state = {
     "messages": [...],
     "turn_count": 1,
@@ -160,7 +160,7 @@ state = {
 
 最小教学版只用一种原因就够了：
 
-```python
+```typescript
 "tool_result"
 ```
 
@@ -179,7 +179,7 @@ state = {
 
 用户的请求先进入 `messages`：
 
-```python
+```typescript
 messages = [{"role": "user", "content": query}]
 ```
 
@@ -187,7 +187,7 @@ messages = [{"role": "user", "content": query}]
 
 把消息历史、system prompt 和工具定义一起发给模型：
 
-```python
+```typescript
 response = client.messages.create(
     model=MODEL,
     system=SYSTEM,
@@ -199,7 +199,7 @@ response = client.messages.create(
 
 ### 第三步：追加 assistant 回复
 
-```python
+```typescript
 messages.append({"role": "assistant", "content": response.content})
 ```
 
@@ -210,7 +210,7 @@ messages.append({"role": "assistant", "content": response.content})
 
 ### 第四步：如果模型调用了工具，就执行
 
-```python
+```typescript
 results = []
 for block in response.content:
     if block.type == "tool_use":
@@ -224,7 +224,7 @@ for block in response.content:
 
 ### 第五步：把工具结果作为新消息写回去
 
-```python
+```typescript
 messages.append({"role": "user", "content": results})
 ```
 
@@ -232,7 +232,7 @@ messages.append({"role": "user", "content": results})
 
 ### 组合成一个完整循环
 
-```python
+```typescript
 def agent_loop(state):
     while True:
         response = client.messages.create(
@@ -291,7 +291,7 @@ def agent_loop(state):
 
 这一章里，我们先用：
 
-```python
+```typescript
 if response.stop_reason != "tool_use":
     return
 ```

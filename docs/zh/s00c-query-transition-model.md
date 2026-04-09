@@ -106,7 +106,7 @@ compact_retry
 
 最小版建议就把这类字段显式放进状态里：
 
-```python
+```typescript
 state = {
     "messages": [...],
     "turn_count": 3,
@@ -128,7 +128,7 @@ state = {
 
 教学版最小可以先这样分：
 
-```python
+```typescript
 TRANSITIONS = (
     "tool_result_continuation",
     "max_tokens_recovery",
@@ -164,7 +164,7 @@ TRANSITIONS = (
 
 例如：
 
-```python
+```typescript
 state = {
     "max_output_tokens_recovery_count": 2,
     "has_attempted_reactive_compact": True,
@@ -181,20 +181,20 @@ state = {
 
 很多初学者写主循环时，所有继续逻辑都长这样：
 
-```python
+```typescript
 continue
 ```
 
 教学版应该往前走一步：
 
-```python
+```typescript
 state["transition"] = "tool_result_continuation"
 continue
 ```
 
 ### 第二步：不同继续原因，配不同状态修改
 
-```python
+```typescript
 if response.stop_reason == "tool_use":
     state["messages"] = append_tool_results(...)
     state["turn_count"] += 1
@@ -219,7 +219,7 @@ if response.stop_reason == "max_tokens":
 
 ### 第三步：把恢复继续和正常继续分开
 
-```python
+```typescript
 if should_retry_transport(error):
     time.sleep(backoff(...))
     state["transition"] = "transport_retry"

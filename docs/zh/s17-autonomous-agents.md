@@ -89,14 +89,15 @@ IDLE
 
 在当前教学代码里，判定已经不是单纯看 `pending`，而是：
 
-```python
-def is_claimable_task(task: dict, role: str | None = None) -> bool:
+```typescript
+function isClaimableTask(task: any, role?: string): boolean {
     return (
-        task.get("status") == "pending"
-        and not task.get("owner")
-        and not task.get("blockedBy")
-        and _task_allows_role(task, role)
-    )
+        task.status === "pending"
+        && !task.owner
+        && (!task.blockedBy || task.blockedBy.length === 0)
+        && _taskAllowsRole(task, role)
+    );
+}
 ```
 
 这 4 个条件缺一不可：
@@ -115,15 +116,15 @@ def is_claimable_task(task: dict, role: str | None = None) -> bool:
 
 例如：
 
-```python
-task = {
-    "id": 7,
-    "subject": "Implement login page",
-    "status": "pending",
-    "owner": "",
-    "blockedBy": [],
-    "claim_role": "frontend",
-}
+```typescript
+const task = {
+    id: 7,
+    subject: "Implement login page",
+    status: "pending",
+    owner: "",
+    blockedBy: [],
+    claimRole: "frontend",
+};
 ```
 
 这表示：
@@ -134,13 +135,13 @@ task = {
 
 一旦认领成功，任务记录至少会发生这些变化：
 
-```python
+```typescript
 {
-    "id": 7,
-    "owner": "alice",
-    "status": "in_progress",
-    "claimed_at": 1710000000.0,
-    "claim_source": "auto",
+    id: 7,
+    owner: "alice",
+    status: "in_progress",
+    claimedAt: 1710000000.0,
+    claimSource: "auto",
 }
 ```
 
@@ -164,7 +165,7 @@ task = {
 
 每条事件大致长这样：
 
-```python
+```typescript
 {
     "event": "task.claimed",
     "task_id": 7,
@@ -215,7 +216,7 @@ task = {
 
 最小补法是重新注入一段身份提示：
 
-```python
+```typescript
 identity = {
     "role": "user",
     "content": "<identity>You are 'alice', role: frontend, team: default. Continue your work.</identity>",
@@ -224,7 +225,7 @@ identity = {
 
 当前实现里还会同时补一条很短的确认语：
 
-```python
+```typescript
 {"role": "assistant", "content": "I am alice. Continuing."}
 ```
 
@@ -238,7 +239,7 @@ identity = {
 
 ### 第一步：让队友拥有 `WORK -> IDLE` 的循环
 
-```python
+```typescript
 while True:
     run_work_phase(...)
     should_resume = run_idle_phase(...)
@@ -248,7 +249,7 @@ while True:
 
 ### 第二步：在 IDLE 里先看邮箱
 
-```python
+```typescript
 def idle_phase(name: str, messages: list) -> bool:
     inbox = bus.read_inbox(name)
     if inbox:
@@ -265,7 +266,7 @@ def idle_phase(name: str, messages: list) -> bool:
 
 ### 第三步：如果邮箱没消息，再按“当前角色”扫描可认领任务
 
-```python
+```typescript
     unclaimed = scan_unclaimed_tasks(role)
     if unclaimed:
         task = unclaimed[0]
@@ -288,7 +289,7 @@ def idle_phase(name: str, messages: list) -> bool:
 
 ### 第四步：认领后先补身份，再把任务提示塞回主循环
 
-```python
+```typescript
         ensure_identity_context(messages, name, role, team_name)
         messages.append({
             "role": "user",
@@ -316,7 +317,7 @@ def idle_phase(name: str, messages: list) -> bool:
 
 ### 第五步：长时间没事就退出
 
-```python
+```typescript
     time.sleep(POLL_INTERVAL)
     ...
     return False
@@ -347,7 +348,7 @@ def idle_phase(name: str, messages: list) -> bool:
 
 所以最小教学版也应该加一个认领锁：
 
-```python
+```typescript
 with claim_lock:
     task = load(task_id)
     if task["owner"]:

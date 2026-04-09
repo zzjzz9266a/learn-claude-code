@@ -101,7 +101,7 @@ Parent agent continues
 
 その最小 schema は非常に簡単で構いません。
 
-```python
+```typescript
 {
     "name": "task",
     "description": "Run a subtask in a clean context and return a summary.",
@@ -119,7 +119,7 @@ Parent agent continues
 
 subagent の本体はここです。
 
-```python
+```typescript
 def run_subagent(prompt: str) -> str:
     sub_messages = [{"role": "user", "content": prompt}]
     ...
@@ -153,7 +153,7 @@ subagent は内部 history を親に全部戻しません。
 
 戻すのは必要な summary だけです。
 
-```python
+```typescript
 return {
     "type": "tool_result",
     "tool_use_id": block.id,
@@ -172,7 +172,7 @@ return {
 
 この章で 1 つだけ覚えるなら、次の骨格です。
 
-```python
+```typescript
 class SubagentContext:
     messages: list
     tools: list
@@ -263,7 +263,7 @@ subagent は long-lived teammate より前に学ぶべき最小の delegation mo
 
 そのとき使うのが `fork` です。
 
-```python
+```typescript
 sub_messages = list(parent_messages)
 sub_messages.append({"role": "user", "content": prompt})
 ```

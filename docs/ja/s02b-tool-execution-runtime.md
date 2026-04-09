@@ -118,7 +118,7 @@ queued context modifiers をマージする
 
 教材版なら次の程度の batch 概念で十分です。
 
-```python
+```typescript
 batch = {
     "is_concurrency_safe": True,
     "blocks": [tool_use_1, tool_use_2, tool_use_3],
@@ -134,7 +134,7 @@ batch = {
 
 完成度を上げたいなら各 tool を明示的に追跡します。
 
-```python
+```typescript
 tracked_tool = {
     "id": "toolu_01",
     "name": "read_file",
@@ -159,7 +159,7 @@ tool 実行は最終結果 1 個だけを返すとは限りません。
 
 最小理解は次で十分です。
 
-```python
+```typescript
 update = {
     "message": maybe_message,
     "new_context": current_context,
@@ -187,7 +187,7 @@ update = {
 
 ことです。
 
-```python
+```typescript
 queued_context_modifiers = {
     "toolu_01": [modify_ctx_a],
     "toolu_02": [modify_ctx_b],
@@ -198,14 +198,14 @@ queued_context_modifiers = {
 
 ### Step 1: concurrency safety を判定する
 
-```python
+```typescript
 def is_concurrency_safe(tool_name: str, tool_input: dict) -> bool:
     return tool_name in {"read_file", "search_files"}
 ```
 
 ### Step 2: 実行前に partition する
 
-```python
+```typescript
 batches = partition_tool_calls(tool_uses)
 
 for batch in batches:
@@ -217,7 +217,7 @@ for batch in batches:
 
 ### Step 3: 並列 lane では progress を先に出せるようにする
 
-```python
+```typescript
 for update in run_concurrently(...):
     if update.get("message"):
         yield update["message"]
@@ -225,7 +225,7 @@ for update in run_concurrently(...):
 
 ### Step 4: context merge は安定順で行う
 
-```python
+```typescript
 queued_modifiers = {}
 
 for update in concurrent_updates:
@@ -263,7 +263,7 @@ partition by concurrency safety
 
 小さい demo では:
 
-```python
+```typescript
 handlers[tool_name](tool_input)
 ```
 

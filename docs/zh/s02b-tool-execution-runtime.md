@@ -113,7 +113,7 @@ tool_use blocks
 
 教学版最小可以先用这样一个概念：
 
-```python
+```typescript
 batch = {
     "is_concurrency_safe": True,
     "blocks": [tool_use_1, tool_use_2, tool_use_3],
@@ -129,7 +129,7 @@ batch = {
 
 如果你准备把执行层做得更稳、更清楚，建议显式跟踪每个工具：
 
-```python
+```typescript
 tracked_tool = {
     "id": "toolu_01",
     "name": "read_file",
@@ -156,7 +156,7 @@ tracked_tool = {
 
 最小可以先理解成：
 
-```python
+```typescript
 update = {
     "message": maybe_message,
     "new_context": current_context,
@@ -178,7 +178,7 @@ update = {
 
 最小理解方式：
 
-```python
+```typescript
 queued_context_modifiers = {
     "toolu_01": [modify_ctx_a],
     "toolu_02": [modify_ctx_b],
@@ -189,14 +189,14 @@ queued_context_modifiers = {
 
 ### 第一步：先分清哪些工具能并发
 
-```python
+```typescript
 def is_concurrency_safe(tool_name: str, tool_input: dict) -> bool:
     return tool_name in {"read_file", "search_files"}
 ```
 
 ### 第二步：先分批，再执行
 
-```python
+```typescript
 batches = partition_tool_calls(tool_uses)
 
 for batch in batches:
@@ -208,7 +208,7 @@ for batch in batches:
 
 ### 第三步：并发批次先吐进度，再收最终结果
 
-```python
+```typescript
 for update in run_concurrently(...):
     if update.get("message"):
         yield update["message"]
@@ -216,7 +216,7 @@ for update in run_concurrently(...):
 
 ### 第四步：context modifier 不要乱序落地
 
-```python
+```typescript
 queued_modifiers = {}
 
 for update in concurrent_updates:
@@ -253,7 +253,7 @@ partition by concurrency safety
 
 最小 demo 里：
 
-```python
+```typescript
 handlers[tool_name](tool_input)
 ```
 

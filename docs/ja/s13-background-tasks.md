@@ -109,7 +109,7 @@ Background lane
 
 教材コードでは、background 実行はおおむね次の record を持ちます。
 
-```python
+```typescript
 task = {
     "id": "a1b2c3d4",
     "command": "pytest",
@@ -151,7 +151,7 @@ task = {
 
 background result はまず notification queue に入ります。
 
-```python
+```typescript
 notification = {
     "task_id": "a1b2c3d4",
     "status": "completed",
@@ -176,7 +176,7 @@ notification の役割は 1 つだけです。
 - `tasks`: いま存在する runtime task
 - `_notification_queue`: main loop にまだ回収されていない結果
 
-```python
+```typescript
 class BackgroundManager:
     def __init__(self):
         self.tasks = {}
@@ -190,7 +190,7 @@ class BackgroundManager:
 
 background 化の一番大きな変化はここです。
 
-```python
+```typescript
 def run(self, command: str) -> str:
     task_id = str(uuid.uuid4())[:8]
     self.tasks[task_id] = {
@@ -217,7 +217,7 @@ def run(self, command: str) -> str:
 
 ### 第 3 段階: subprocess が終わったら notification を積む
 
-```python
+```typescript
 def _execute(self, task_id: str, command: str):
     try:
         result = subprocess.run(..., timeout=300)
@@ -245,7 +245,7 @@ def _execute(self, task_id: str, command: str):
 
 ### 第 4 段階: 次の model call 前に queue を drain する
 
-```python
+```typescript
 def agent_loop(messages: list):
     while True:
         notifications = BG.drain_notifications()
@@ -289,7 +289,7 @@ def agent_loop(messages: list):
 
 教材コードは `STALL_THRESHOLD_S` を持ち、長く走りすぎている task を拾えます。
 
-```python
+```typescript
 def detect_stalled(self) -> list[str]:
     now = time.time()
     stalled = []

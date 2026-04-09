@@ -110,7 +110,7 @@ harness そのものも model ではありません。
 
 たとえば次のような形です。
 
-```python
+```typescript
 {
     "read_file": read_file_handler,
     "write_file": write_file_handler,

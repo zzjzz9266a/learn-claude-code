@@ -79,7 +79,7 @@ The system does not treat one user request as one API call.
 
 It first creates a query state for a process that may span many turns:
 
-```python
+```typescript
 query_state = {
     "messages": [{"role": "user", "content": user_text}],
     "turn_count": 1,

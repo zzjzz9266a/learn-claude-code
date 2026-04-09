@@ -144,7 +144,7 @@ plan state
 
 最小の item は次のように考えられます。
 
-```python
+```typescript
 {
     "content": "Read the failing test",
     "status": "pending" | "in_progress" | "completed",
@@ -166,7 +166,7 @@ item だけでは足りません。
 
 plan 全体には最低限、次の running state も要ります。
 
-```python
+```typescript
 {
     "items": [...],
     "rounds_since_update": 0,
@@ -202,7 +202,7 @@ plan 全体には最低限、次の running state も要ります。
 
 ### 第 1 段階: plan manager を用意する
 
-```python
+```typescript
 class TodoManager:
     def __init__(self):
         self.items = []
@@ -224,7 +224,7 @@ class TodoManager:
 
 方が理解しやすいです。
 
-```python
+```typescript
 def update(self, items: list) -> str:
     validated = []
     in_progress_count = 0
@@ -254,7 +254,7 @@ def update(self, items: list) -> str:
 
 ### 第 3 段階: render して可読にする
 
-```python
+```typescript
 def render(self) -> str:
     lines = []
     for item in self.items:
@@ -278,7 +278,7 @@ plan が text として安定して見えることで、
 
 ### 第 4 段階: `todo` を 1 つの tool として loop へ接ぐ
 
-```python
+```typescript
 TOOL_HANDLERS = {
     "read_file": run_read,
     "write_file": run_write,
@@ -296,7 +296,7 @@ TOOL_HANDLERS = {
 
 ### 第 5 段階: 数 turn 更新がなければ reminder を挿入する
 
-```python
+```typescript
 if rounds_since_update >= 3:
     results.insert(0, {
         "type": "text",

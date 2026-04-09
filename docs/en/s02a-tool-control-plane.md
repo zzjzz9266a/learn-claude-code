@@ -87,7 +87,7 @@ The biggest step up is layer 3:
 
 ### `ToolSpec`
 
-```python
+```typescript
 tool = {
     "name": "read_file",
     "description": "Read file contents.",
@@ -97,7 +97,7 @@ tool = {
 
 ### `ToolDispatchMap`
 
-```python
+```typescript
 handlers = {
     "read_file": read_file,
     "write_file": write_file,
@@ -109,7 +109,7 @@ Necessary, but not sufficient.
 
 ### `ToolUseContext`
 
-```python
+```typescript
 tool_use_context = {
     "tools": handlers,
     "permission_context": {...},
@@ -128,7 +128,7 @@ They start receiving a shared runtime environment.
 
 ### `ToolResultEnvelope`
 
-```python
+```typescript
 result = {
     "ok": True,
     "content": "...",
@@ -150,7 +150,7 @@ Compare two systems.
 
 ### System A: dispatch map only
 
-```python
+```typescript
 output = handlers[tool_name](**tool_input)
 ```
 
@@ -158,7 +158,7 @@ Fine for a demo.
 
 ### System B: dispatch map plus execution context
 
-```python
+```typescript
 output = handlers[tool_name](tool_input, tool_use_context)
 ```
 
@@ -181,7 +181,7 @@ Do not throw away the simple model.
 
 ### 2. Introduce one shared context object
 
-```python
+```typescript
 class ToolUseContext:
     def __init__(self):
         self.handlers = {}
@@ -194,7 +194,7 @@ class ToolUseContext:
 
 ### 3. Let all handlers receive the context
 
-```python
+```typescript
 def run_tool(tool_name: str, tool_input: dict, ctx: ToolUseContext):
     handler = ctx.handlers[tool_name]
     return handler(tool_input, ctx)
@@ -202,7 +202,7 @@ def run_tool(tool_name: str, tool_input: dict, ctx: ToolUseContext):
 
 ### 4. Route by capability source
 
-```python
+```typescript
 def route_tool(tool_name: str, tool_input: dict, ctx: ToolUseContext):
     if tool_name.startswith("mcp__"):
         return run_mcp_tool(tool_name, tool_input, ctx)

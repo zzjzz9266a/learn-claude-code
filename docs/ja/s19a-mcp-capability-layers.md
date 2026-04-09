@@ -137,7 +137,7 @@ MCP に複数 layer があっても、正文主線はまず次で十分です。
 
 教材版でも最低限この概念は見せるべきです。
 
-```python
+```typescript
 config = {
     "name": "postgres",
     "type": "stdio",
@@ -151,7 +151,7 @@ config = {
 
 ### 2. MCP connection state
 
-```python
+```typescript
 server_state = {
     "name": "postgres",
     "status": "connected",   # pending / failed / needs-auth / disabled
@@ -161,7 +161,7 @@ server_state = {
 
 ### 3. `MCPToolSpec`
 
-```python
+```typescript
 tool = {
     "name": "mcp__postgres__query",
     "description": "...",
@@ -171,7 +171,7 @@ tool = {
 
 ### 4. `ElicitationRequest`
 
-```python
+```typescript
 request = {
     "server_name": "some-server",
     "message": "Please provide additional input",

@@ -46,17 +46,19 @@ core
 
 **Step 1. Define the builder.** Each method owns exactly one source of content.
 
-```python
-class SystemPromptBuilder:
-    def build(self) -> str:
-        parts = []
-        parts.append(self._build_core())
-        parts.append(self._build_tools())
-        parts.append(self._build_skills())
-        parts.append(self._build_memory())
-        parts.append(self._build_claude_md())
-        parts.append(self._build_dynamic())
-        return "\n\n".join(p for p in parts if p)
+```typescript
+class SystemPromptBuilder {
+  build(): string {
+    const parts: string[] = [];
+    parts.push(this._buildCore());
+    parts.push(this._buildTools());
+    parts.push(this._buildSkills());
+    parts.push(this._buildMemory());
+    parts.push(this._buildClaudeMd());
+    parts.push(this._buildDynamic());
+    return parts.filter(p => p).join("\n\n");
+  }
+}
 ```
 
 That is the central idea of the chapter. Each `_build_*` method pulls from one source only: `_build_tools()` reads the tool list, `_build_memory()` reads the memory store, and so on. If you want to know where a line in the prompt came from, you check the one method responsible for it.

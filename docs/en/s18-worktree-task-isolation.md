@@ -50,35 +50,41 @@ State machines:
 
 **Step 1.** Create a task. The goal is recorded first, before any directory exists.
 
-```python
-TASKS.create("Implement auth refactor")
-# -> .tasks/task_1.json  status=pending  worktree=""
+```typescript
+TASKS.create("Implement auth refactor");
+// -> .tasks/task_1.json  status=pending  worktree=""
 ```
 
 **Step 2.** Create a worktree and bind it to the task. Passing `task_id` automatically advances the task to `in_progress` -- you do not need to update the status separately.
 
-```python
-WORKTREES.create("auth-refactor", task_id=1)
-# -> git worktree add -b wt/auth-refactor .worktrees/auth-refactor HEAD
-# -> index.json gets new entry, task_1.json gets worktree="auth-refactor"
+```typescript
+WORKTREES.create("auth-refactor", { taskId: 1 });
+// -> git worktree add -b wt/auth-refactor .worktrees/auth-refactor HEAD
+// -> index.json gets new entry, task_1.json gets worktree="auth-refactor"
 ```
 
 The binding writes state to both sides so you can traverse the relationship from either direction:
 
-```python
-def bind_worktree(self, task_id, worktree):
-    task = self._load(task_id)
-    task["worktree"] = worktree
-    if task["status"] == "pending":
-        task["status"] = "in_progress"
-    self._save(task)
+```typescript
+bindWorktree(taskId: number, worktree: string): void {
+  const task = this._load(taskId);
+  task.worktree = worktree;
+  if (task.status === "pending") {
+    task.status = "in_progress";
+  }
+  this._save(task);
+}
 ```
 
 **Step 3.** Run commands in the worktree. The key detail: `cwd` points to the isolated directory, not your main project root. Every file operation happens in a sandbox that cannot collide with other worktrees.
 
-```python
-subprocess.run(command, shell=True, cwd=worktree_path,
-               capture_output=True, text=True, timeout=300)
+```typescript
+subprocess.run(command, {
+  shell: true,
+  cwd: worktreePath,
+  captureOutput: true,
+  timeout: 300
+});
 ```
 
 **Step 4.** Close out the worktree. You have two choices, depending on whether the work is done:
@@ -86,13 +92,15 @@ subprocess.run(command, shell=True, cwd=worktree_path,
 - `worktree_keep(name)` -- preserve the directory for later (useful when a task is paused or needs review).
 - `worktree_remove(name, complete_task=True)` -- remove the directory, mark the bound task as completed, and emit an event. One call handles teardown and completion together.
 
-```python
-def remove(self, name, force=False, complete_task=False):
-    self._run_git(["worktree", "remove", wt["path"]])
-    if complete_task and wt.get("task_id") is not None:
-        self.tasks.update(wt["task_id"], status="completed")
-        self.tasks.unbind_worktree(wt["task_id"])
-        self.events.emit("task.completed", ...)
+```typescript
+remove(name: string, options: { force?: boolean; completeTask?: boolean } = {}): void {
+  this._runGit(["worktree", "remove", wt.path]);
+  if (options.completeTask && wt.taskId !== undefined) {
+    this.tasks.update(wt.taskId, { status: "completed" });
+    this.tasks.unbindWorktree(wt.taskId);
+    this.events.emit("task.completed", ...);
+  }
+}
 ```
 
 **Step 5.** Observe the event stream. Every lifecycle step emits a structured event to `.worktrees/events.jsonl`, giving you a complete audit trail of what happened and when:

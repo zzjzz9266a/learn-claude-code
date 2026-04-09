@@ -45,48 +45,64 @@ There are three essential pieces. Once you understand them, MCP stops being myst
 
 **Step 1.** Build an `MCPClient` that manages the connection to one external server. It starts the server process over stdio, sends a handshake, and caches the list of available tools.
 
-```python
-class MCPClient:
-    def __init__(self, server_name, command, args=None, env=None):
-        self.server_name = server_name
-        self.command = command
-        self.args = args or []
-        self.process = None
-        self._tools = []
+```typescript
+class MCPClient {
+  private serverName: string;
+  private command: string;
+  private args: string[];
+  private process: ChildProcess | null;
+  private tools: any[];
 
-    def connect(self):
-        self.process = subprocess.Popen(
-            [self.command] + self.args,
-            stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE, text=True,
-        )
-        self._send({"method": "initialize", "params": {
-            "protocolVersion": "2024-11-05",
-            "capabilities": {},
-            "clientInfo": {"name": "teaching-agent", "version": "1.0"},
-        }})
-        response = self._recv()
-        if response and "result" in response:
-            self._send({"method": "notifications/initialized"})
-            return True
-        return False
+  constructor(serverName: string, command: string, args?: string[], env?: any) {
+    this.serverName = serverName;
+    this.command = command;
+    this.args = args || [];
+    this.process = null;
+    this.tools = [];
+  }
 
-    def list_tools(self):
-        self._send({"method": "tools/list", "params": {}})
-        response = self._recv()
-        if response and "result" in response:
-            self._tools = response["result"].get("tools", [])
-        return self._tools
+  async connect(): Promise<boolean> {
+    this.process = spawn(this.command, this.args, {
+      stdio: ["pipe", "pipe", "pipe"]
+    });
+    this._send({
+      method: "initialize",
+      params: {
+        protocolVersion: "2024-11-05",
+        capabilities: {},
+        clientInfo: { name: "teaching-agent", version: "1.0" }
+      }
+    });
+    const response = await this._recv();
+    if (response && response.result) {
+      this._send({ method: "notifications/initialized" });
+      return true;
+    }
+    return false;
+  }
 
-    def call_tool(self, tool_name, arguments):
-        self._send({"method": "tools/call", "params": {
-            "name": tool_name, "arguments": arguments,
-        }})
-        response = self._recv()
-        if response and "result" in response:
-            content = response["result"].get("content", [])
-            return "\n".join(c.get("text", str(c)) for c in content)
-        return "MCP Error: no response"
+  async listTools(): Promise<any[]> {
+    this._send({ method: "tools/list", params: {} });
+    const response = await this._recv();
+    if (response && response.result) {
+      this.tools = response.result.tools || [];
+    }
+    return this.tools;
+  }
+
+  async callTool(toolName: string, arguments: any): Promise<string> {
+    this._send({
+      method: "tools/call",
+      params: { name: toolName, arguments: arguments }
+    });
+    const response = await this._recv();
+    if (response && response.result) {
+      const content = response.result.content || [];
+      return content.map((c: any) => c.text || String(c)).join("\n");
+    }
+    return "MCP Error: no response";
+  }
+}
 ```
 
 **Step 2.** Normalize external tool names with a prefix so they never collide with native tools. The convention is simple: `mcp__{server}__{tool}`.
@@ -98,28 +114,32 @@ mcp__browser__open_tab
 
 This prefix serves double duty: it prevents name collisions, and it tells the router exactly which server should handle the call.
 
-```python
-def get_agent_tools(self):
-    agent_tools = []
-    for tool in self._tools:
-        prefixed_name = f"mcp__{self.server_name}__{tool['name']}"
-        agent_tools.append({
-            "name": prefixed_name,
-            "description": tool.get("description", ""),
-            "input_schema": tool.get("inputSchema", {
-                "type": "object", "properties": {}
-            }),
-        })
-    return agent_tools
+```typescript
+getAgentTools(): any[] {
+  const agentTools: any[] = [];
+  for (const tool of this.tools) {
+    const prefixedName = `mcp__${this.serverName}__${tool.name}`;
+    agentTools.push({
+      name: prefixedName,
+      description: tool.description || "",
+      input_schema: tool.inputSchema || {
+        type: "object",
+        properties: {}
+      }
+    });
+  }
+  return agentTools;
+}
 ```
 
 **Step 3.** Build one unified router. The router does not care whether a tool is native or external beyond the dispatch decision. If the name starts with `mcp__`, route to the MCP server; otherwise, call the local handler. This keeps the agent loop untouched -- it just sees a flat list of tools.
 
-```python
-if tool_name.startswith("mcp__"):
-    return mcp_router.call(tool_name, arguments)
-else:
-    return native_handler(arguments)
+```typescript
+if (toolName.startsWith("mcp__")) {
+  return mcpRouter.call(toolName, arguments);
+} else {
+  return nativeHandler(arguments);
+}
 ```
 
 **Step 4.** Add plugin discovery. If MCP answers "how does the agent talk to an external capability server," plugins answer "how are those servers discovered and configured?" A minimal plugin is a manifest file that tells the harness which servers to launch:
@@ -141,9 +161,9 @@ This lives in `.claude-plugin/plugin.json`. The `PluginLoader` scans for these m
 
 **Step 5.** Enforce the safety boundary. This is the most important rule of the entire chapter: external tools must still pass through the same permission gate as native tools. If MCP tools bypass permission checks, you have created a security backdoor at the edge of your system.
 
-```python
-decision = permission_gate.check(block.name, block.input or {})
-# Same check for "bash", "read_file", and "mcp__postgres__query"
+```typescript
+const decision = permissionGate.check(block.name, block.input || {});
+// Same check for "bash", "read_file", and "mcp__postgres__query"
 ```
 
 ## How It Plugs Into The Full Harness
@@ -194,30 +214,30 @@ Shortest memory aid:
 
 ### Server config
 
-```python
+```typescript
 {
-    "command": "npx",
-    "args": ["-y", "..."],
-    "env": {}
+  command: "npx",
+  args: ["-y", "..."],
+  env: {}
 }
 ```
 
 ### Normalized external tool definition
 
-```python
+```typescript
 {
-    "name": "mcp__postgres__query",
-    "description": "Run a SQL query",
-    "input_schema": {...}
+  name: "mcp__postgres__query",
+  description: "Run a SQL query",
+  input_schema: {...}
 }
 ```
 
 ### Client registry
 
-```python
-clients = {
-    "postgres": mcp_client_instance
-}
+```typescript
+const clients: Map<string, MCPClient> = new Map([
+  ["postgres", mcpClientInstance]
+]);
 ```
 
 ## What Changed From s18

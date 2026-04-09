@@ -34,7 +34,7 @@
 
 最小形状：
 
-```python
+```typescript
 message = {
     "role": "user" | "assistant",
     "content": "...",
@@ -60,7 +60,7 @@ message = {
 
 最小形状：
 
-```python
+```typescript
 message = {
     "role": "user" | "assistant",
     "content": [
@@ -85,7 +85,7 @@ message = {
 
 最小形状：
 
-```python
+```typescript
 summary = {
     "task_overview": "...",
     "current_state": "...",
@@ -105,7 +105,7 @@ summary = {
 
 最小形状：
 
-```python
+```typescript
 block = {
     "text": "...",
     "cache_scope": None,
@@ -128,7 +128,7 @@ block = {
 
 最小形状：
 
-```python
+```typescript
 parts = {
     "core": "...",
     "tools": "...",
@@ -149,7 +149,7 @@ parts = {
 
 最小形状：
 
-```python
+```typescript
 params = {
     "messages": [...],
     "system_prompt": "...",
@@ -177,7 +177,7 @@ params = {
 
 最小形状：
 
-```python
+```typescript
 state = {
     "messages": [...],
     "tool_use_context": {...},
@@ -207,7 +207,7 @@ state = {
 
 最小形状：
 
-```python
+```typescript
 transition = {
     "reason": "next_turn",
 }
@@ -240,7 +240,7 @@ transition = {
 
 最小形状：
 
-```python
+```typescript
 tool = {
     "name": "read_file",
     "description": "Read file contents.",
@@ -259,7 +259,7 @@ tool = {
 
 最小形状：
 
-```python
+```typescript
 handlers = {
     "read_file": run_read,
     "write_file": run_write,
@@ -277,7 +277,7 @@ handlers = {
 
 最小形状：
 
-```python
+```typescript
 tool_use_context = {
     "tools": handlers,
     "permission_context": {...},
@@ -311,7 +311,7 @@ tool_use_context = {
 
 最小形状：
 
-```python
+```typescript
 rule = {
     "tool_name": "bash",
     "rule_content": "rm -rf *",
@@ -329,7 +329,7 @@ rule = {
 
 最小形状：
 
-```python
+```typescript
 source = (
     "userSettings"
     | "projectSettings"
@@ -357,7 +357,7 @@ source = (
 
 最小形状：
 
-```python
+```typescript
 decision = {
     "behavior": "allow" | "deny" | "ask",
     "reason": "matched deny rule",
@@ -380,7 +380,7 @@ decision = {
 
 最小形状：
 
-```python
+```typescript
 update = {
     "type": "addRules" | "removeRules" | "setMode" | "addDirectories",
     "destination": "userSettings" | "projectSettings" | "localSettings" | "session",
@@ -402,7 +402,7 @@ update = {
 
 最小形状：
 
-```python
+```typescript
 context = {
     "event": "PreToolUse",
     "tool_name": "bash",
@@ -421,7 +421,7 @@ context = {
 
 最小形状：
 
-```python
+```typescript
 state = {
     "continuation_attempts": 0,
     "compact_attempts": 0,
@@ -441,7 +441,7 @@ state = {
 
 最小形状：
 
-```python
+```typescript
 todo = {
     "content": "Read parser.py",
     "status": "pending" | "completed",
@@ -458,7 +458,7 @@ todo = {
 
 最小形状：
 
-```python
+```typescript
 memory = {
     "name": "prefer_tabs",
     "description": "User prefers tabs for indentation",
@@ -483,7 +483,7 @@ memory = {
 
 最小形状：
 
-```python
+```typescript
 task = {
     "id": 12,
     "subject": "Implement auth module",
@@ -516,7 +516,7 @@ task = {
 
 最小形状：
 
-```python
+```typescript
 schedule = {
     "id": "job_001",
     "cron": "0 9 * * 1",
@@ -540,7 +540,7 @@ schedule = {
 
 最小形状：
 
-```python
+```typescript
 runtime_task = {
     "id": "b8k2m1qz",
     "type": "local_bash",
@@ -569,7 +569,7 @@ runtime_task = {
 
 最小形状：
 
-```python
+```typescript
 member = {
     "name": "alice",
     "role": "coder",
@@ -588,7 +588,7 @@ member = {
 
 最小形状：
 
-```python
+```typescript
 message = {
     "type": "message" | "shutdown_request" | "plan_approval",
     "from": "lead",
@@ -611,7 +611,7 @@ message = {
 
 最小形状：
 
-```python
+```typescript
 request = {
     "request_id": "req_001",
     "kind": "shutdown" | "plan_review",
@@ -631,7 +631,7 @@ request = {
 
 最小形状：
 
-```python
+```typescript
 worktree = {
     "name": "auth-refactor",
     "path": ".worktrees/auth-refactor",
@@ -651,7 +651,7 @@ worktree = {
 
 最小形状：
 
-```python
+```typescript
 event = {
     "event": "worktree.create.after",
     "task_id": 12,
@@ -672,7 +672,7 @@ event = {
 
 最小形状：
 
-```python
+```typescript
 config = {
     "name": "postgres",
     "type": "stdio",
@@ -703,7 +703,7 @@ config = {
 
 最小形状：
 
-```python
+```typescript
 server_state = {
     "name": "postgres",
     "type": "connected",   # pending / failed / needs-auth / disabled
@@ -730,7 +730,7 @@ server_state = {
 
 最小形状：
 
-```python
+```typescript
 mcp_tool = {
     "name": "mcp__postgres__query",
     "description": "Run a SQL query",
@@ -748,7 +748,7 @@ mcp_tool = {
 
 最小形状：
 
-```python
+```typescript
 request = {
     "server_name": "some-server",
     "message": "Please provide additional input",

@@ -131,7 +131,7 @@
 
 最小教学版建议至少让读者看到这个概念：
 
-```python
+```typescript
 config = {
     "name": "postgres",
     "type": "stdio",
@@ -147,7 +147,7 @@ config = {
 
 ### 2. MCP Connection State
 
-```python
+```typescript
 server_state = {
     "name": "postgres",
     "status": "connected",   # pending / failed / needs-auth / disabled
@@ -157,7 +157,7 @@ server_state = {
 
 ### 3. MCPToolSpec
 
-```python
+```typescript
 tool = {
     "name": "mcp__postgres__query",
     "description": "...",
@@ -167,7 +167,7 @@ tool = {
 
 ### 4. ElicitationRequest
 
-```python
+```typescript
 request = {
     "server_name": "some-server",
     "message": "Please provide additional input",

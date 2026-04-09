@@ -43,7 +43,7 @@ final model input
 
 入力 source を組み立て前に分けて持つ構造です。
 
-```python
+```typescript
 parts = {
     "core": "...",
     "tools": "...",
@@ -57,7 +57,7 @@ parts = {
 
 1 本の巨大文字列ではなく、section 単位で扱うための単位です。
 
-```python
+```typescript
 block = {
     "text": "...",
     "cache_scope": None,
@@ -68,7 +68,7 @@ block = {
 
 API に渡す前に整えられた messages です。
 
-```python
+```typescript
 {
     "role": "user",
     "content": [

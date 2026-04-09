@@ -42,40 +42,55 @@ Give the model a `todo` tool that maintains a structured checklist. Then inject 
 
 **Step 1.** TodoManager stores items with statuses. The "one `in_progress` at a time" constraint forces the model to finish what it started before moving on.
 
-```python
-class TodoManager:
-    def update(self, items: list) -> str:
-        validated, in_progress_count = [], 0
-        for item in items:
-            status = item.get("status", "pending")
-            if status == "in_progress":
-                in_progress_count += 1
-            validated.append({"id": item["id"], "text": item["text"],
-                              "status": status})
-        if in_progress_count > 1:
-            raise ValueError("Only one task can be in_progress")
-        self.items = validated
-        return self.render()  # returns the checklist as formatted text
+```typescript
+class TodoManager {
+  items: any[] = [];
+
+  update(items: any[]): string {
+    const validated: any[] = [];
+    let in_progress_count = 0;
+
+    for (const item of items) {
+      const status = item.status || "pending";
+      if (status === "in_progress") {
+        in_progress_count++;
+      }
+      validated.push({
+        id: item.id,
+        text: item.text,
+        status: status
+      });
+    }
+
+    if (in_progress_count > 1) {
+      throw new Error("Only one task can be in_progress");
+    }
+
+    this.items = validated;
+    return this.render();  // returns the checklist as formatted text
+  }
+}
 ```
 
 **Step 2.** The `todo` tool goes into the dispatch map like any other tool -- no special wiring needed, just one more entry in the dictionary you built in s02.
 
-```python
-TOOL_HANDLERS = {
-    # ...base tools...
-    "todo": lambda **kw: TODO.update(kw["items"]),
-}
+```typescript
+const TOOL_HANDLERS = {
+  // ...base tools...
+  "todo": (kw: any) => TODO.update(kw["items"]),
+};
 ```
 
 **Step 3.** A nag reminder injects a nudge if the model goes 3+ rounds without calling `todo`. This is the write-back trick (feeding tool results back into the conversation) used for a new purpose: the harness (the code wrapping around the model) quietly inserts a reminder into the results payload before it is appended to messages.
 
-```python
-if rounds_since_todo >= 3:
-    results.insert(0, {
-        "type": "text",
-        "text": "<reminder>Update your todos.</reminder>",
-    })
-messages.append({"role": "user", "content": results})
+```typescript
+if (rounds_since_todo >= 3) {
+  results.unshift({
+    type: "text",
+    text: "<reminder>Update your todos.</reminder>",
+  });
+}
+messages.push({ role: "user", content: results });
 ```
 
 The "one in_progress at a time" constraint forces sequential focus. The nag reminder creates accountability. Together, they keep the model working through its plan instead of drifting.
