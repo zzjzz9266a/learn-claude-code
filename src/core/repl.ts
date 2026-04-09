@@ -1,23 +1,10 @@
-import { fileURLToPath } from "node:url";
-
 import type { Message } from "./reference-agent";
 import { extractText } from "./reference-agent";
-
-function normalizeComparablePath(input: string) {
-  const normalized = input.replaceAll("\\", "/");
-  if (/^\/[A-Za-z]:\//.test(normalized)) {
-    return normalized.slice(1).toLowerCase();
-  }
-  if (/^[A-Za-z]:\//.test(normalized)) {
-    return normalized.toLowerCase();
-  }
-  return normalized;
-}
 
 export function isMainModule(metaUrl: string) {
   const entry = process.argv[1];
   if (!entry) return false;
-  return normalizeComparablePath(fileURLToPath(metaUrl)) === normalizeComparablePath(entry);
+  return new URL(metaUrl).pathname === entry;
 }
 
 export async function startRepl(options: {
