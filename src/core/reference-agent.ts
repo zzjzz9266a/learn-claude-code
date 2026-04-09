@@ -2,7 +2,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { config as loadDotenv } from "dotenv";
 import { existsSync, mkdirSync, readFileSync, readdirSync, unlinkSync, writeFileSync, appendFileSync } from "node:fs";
 import { promises as fs } from "node:fs";
-import { join, resolve } from "node:path";
+import { dirname, join, posix, relative, resolve, sep, win32 } from "node:path";
 import { cwd } from "node:process";
 import { spawn } from "node:child_process";
 import { randomUUID } from "node:crypto";
@@ -81,6 +81,10 @@ export const TASKS_DIR = join(WORKDIR, ".tasks");
 export const SKILLS_DIR = join(WORKDIR, "skills");
 export const TRANSCRIPT_DIR = join(WORKDIR, ".transcripts");
 
+function getPathApiFor(pathValue: string) {
+  return /^[A-Za-z]:[\\/]/.test(pathValue) ? win32 : posix;
+}
+
 export function createClient() {
   return new Anthropic({ baseURL: process.env.ANTHROPIC_BASE_URL });
 }
@@ -90,8 +94,15 @@ export function createSystemPrompt(instructions: string) {
 }
 
 export function safePath(relativePath: string) {
-  const fullPath = resolve(WORKDIR, relativePath);
-  if (!fullPath.startsWith(resolve(WORKDIR))) {
+  const pathApi = getPathApiFor(WORKDIR);
+  const rootPath = pathApi.resolve(WORKDIR);
+  const fullPath = pathApi.resolve(rootPath, relativePath);
+  const relativePathFromRoot = pathApi.relative(rootPath, fullPath);
+  if (
+    relativePathFromRoot === ".." ||
+    relativePathFromRoot.startsWith(`..${pathApi.sep}`) ||
+    /^[A-Za-z]:[\\/]/.test(relativePathFromRoot)
+  ) {
     throw new Error(`Path escapes workspace: ${relativePath}`);
   }
   return fullPath;
@@ -160,8 +171,9 @@ export async function readWorkspaceFile(path: string, limit?: number) {
 export async function writeWorkspaceFile(path: string, content: string) {
   try {
     const fullPath = safePath(path);
-    mkdirSync(resolve(fullPath, ".."), { recursive: true });
-    await fs.mkdir(resolve(fullPath, ".."), { recursive: true });
+    const parentDir = dirname(fullPath);
+    mkdirSync(parentDir, { recursive: true });
+    await fs.mkdir(parentDir, { recursive: true });
     await fs.writeFile(fullPath, content, "utf8");
     return `Wrote ${content.length} bytes to ${path}`;
   } catch (error) {
